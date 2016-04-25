@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8" />
+<script type="text/javascript" th:src="@{/js/jquery-1.12.3.js}"></script>
+<script type="text/javascript" th:src="@{/js/jqwidgets/jqxcore.js}"></script>
+<script type="text/javascript" th:src="@{/js/jqwidgets/jqxlayout.js}"></script>
+<script type="text/javascript" th:src="@{/js/jqwidgets/jqxribbon.js}"></script>
+<script type="text/javascript" th:src="@{/js/d3/d3.js}"></script>
+<script type="text/javascript" th:src="@{/js/dagre/dagre-d3.js}"></script>
+
+<link rel="stylesheet" th:href="@{/js/jqwidgets/styles/jqx.base.css}" type="text/css" />
+<link rel="stylesheet" th:href="@{/css/graph.css}" type="text/css" />
+
+<script type="text/javascript" th:inline="javascript">
+	/*<![CDATA[*/
+	$(document)
+			.ready(
+					function() {
+						// Create jqxPanel
+						console.log("foo2");
+						var layout = [ {
+							type : 'layoutGroup',
+							orientation : 'horizontal',
+							items : [
+									{
+										type : 'documentGroup',
+										width : '80%',
+										minWidth : '300',
+										items : [
+												{
+													type : 'documentPanel',
+													title : 'Graph',
+													contentContainer : 'GraphPanel',
+													initContent : function() {
+														var g = dagreD3.graphlib.json
+																.read({
+																	"options" : {
+																		"directed" : true,
+																		"multigraph" : false,
+																		"compound" : false
+																	},
+																	"nodes" : [
+																			{
+																				"v" : "PS",
+																				"value" : {
+																					"label" : "PS"
+																				}
+																			},
+																			{
+																				"v" : "BE",
+																				"value" : {
+																					"label" : "BE"
+																				}
+																			},
+																			{
+																				"v" : "BF",
+																				"value" : {
+																					"label" : "BF"
+																				}
+																			},
+																			{
+																				"v" : "PE",
+																				"value" : {
+																					"label" : "PE"
+																				}
+																			},
+																			{
+																				"v" : "KA",
+																				"value" : {
+																					"label" : "KA"
+																				}
+																			},
+																			{
+																				"v" : "start",
+																				"value" : {
+																					"class" : "pm_start",
+																					"label" : "Start"
+																				}
+																			},
+																			{
+																				"v" : "end",
+																				"value" : {
+																					"class" : "pm_end",
+																					"label" : "End"
+																				}
+																			} ],
+																	"edges" : [
+																			{
+																				"v" : "KA",
+																				"w" : "BE",
+																				"value" : {
+																					"label" : "KA-BE"
+																				}
+																			},
+																			{
+																				"v" : "PS",
+																				"w" : "end",
+																				"value" : {
+																					"label" : "PS-end"
+																				}
+																			},
+																			{
+																				"v" : "start",
+																				"w" : "KA",
+																				"value" : {
+																					"label" : "start-KA"
+																				}
+																			},
+																			{
+																				"v" : "PE",
+																				"w" : "BF",
+																				"value" : {
+																					"label" : "PE-BF"
+																				}
+																			},
+																			{
+																				"v" : "BE",
+																				"w" : "PE",
+																				"value" : {
+																					"label" : "BE-PE"
+																				}
+																			},
+																			{
+																				"v" : "BF",
+																				"w" : "PS",
+																				"value" : {
+																					"label" : "BF-PS"
+																				}
+																			} ],
+																	"value" : {}
+																});
+
+														// Create the renderer
+														var render = new dagreD3.render();
+
+														// Set up an SVG group so that we can translate the final graph.
+														var svg = d3
+																.select("svg"), svgGroup = svg
+																.append("g");
+
+														
+														// Set up zoom support
+														var zoom = d3.behavior
+																.zoom()
+																.on(
+																		"zoom",
+																		function() {
+																			console.log(d3.event.translate, d3.event.scale, d3.event);
+																			svgGroup
+																					.attr(
+																							"transform",
+																							"translate("
+																									+ d3.event.translate
+																									+ ")"
+																									+ "scale("
+																									+ d3.event.scale
+																									+ ")");
+																		});
+														console.log('SVG', svg);
+														svg.call(zoom);
+
+														// Run the renderer. This is what draws the final graph.
+														render(
+																d3
+																		.select("svg g"),
+																g);
+														// Center the graph
+														console
+																.log(
+																		'xCenterOffset',$('#svg-canvas').width(),
+																		svg
+																				.attr("width"),
+																		g
+																				.graph().width,
+																		svg,
+																		document
+																				.getElementById(
+																						'svg-canvas')
+																				.getBoundingClientRect());
+
+														var xCenterOffset = ($('#svg-canvas').width() - g
+																.graph().width) / 2;
+														console.log('xCenterOffset', xCenterOffset);
+														svg
+																.attr(
+																		"transform",
+																		"translate("
+																				+ xCenterOffset
+																				+ ", 0)");
+														/* svg
+																.attr(
+																		"height",
+																		g
+																				.graph().height + $('#svg-canvas').height());
+ */
+													}
+												},
+												{
+													type : 'documentPanel',
+													title : 'List',
+													contentContainer : 'ListPanel',
+													selected : true
+												} ]
+
+									},
+									{
+										type : 'tabbedGroup',
+										width : '20%',
+										minWidth : '200',
+										allowClose : false,
+										allowPin : false,
+										items : [ {
+											type : 'layoutPanel',
+											title : 'Properties',
+											contentContainer : 'PropertiesPanel'
+										} ]
+									} ]
+						} ];
+
+						$('#jqxLayout').jqxLayout({
+							width : 1000,
+							height : 600,
+							layout : layout
+						});
+					});
+	/*]]>*/
+</script>
+
+<title>PM Web Applikation</title>
+</head>
+<body>
+	<div id="jqxLayout">
+		<!--The panel content divs can have a flat structure-->
+		<!-- documentGroup -->
+		<div data-container="GraphPanel" style="overflow: hidden">
+ 			<svg id="svg-canvas" width="99%" height="99%"></svg>
+		</div>
+		<div data-container="ListPanel">List Data</div>
+		<div data-container="PropertiesPanel">Propertiespanel</div>
+	</div>
+</body>
+</html>
