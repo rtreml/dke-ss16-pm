@@ -2,8 +2,6 @@ package at.jku.dke.pm.config;
 
 import java.io.File;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
 
 import javax.sql.DataSource;
 
@@ -53,41 +51,6 @@ public class CreateDB2 {
 		jdbcTemplate.update("ALTER USER DKE SET INITIAL SCHEMA DKE");
 
 		logger.debug("db_00_createSchema:done");
-	}
-
-	/**
-	 * Masterdata: Events
-	 */
-	@SuppressWarnings("serial")
-	private final Map<Integer, String> MD_EVENTS = new HashMap<Integer, String>() {
-		{
-			put(1, "Bestellmenge geändert");
-			put(2, "Bestellposition erstellt");
-			put(3, "Bestellposition storniert");
-			put(4, "Bestellung erstellt");
-			put(5, "Bestellung freigegeben");
-			put(6, "Kreditor erstellt");
-			put(7, "Kreditor gesperrt");
-			put(8, "Preis geändert");
-			put(9, "Rechnung eingegangen");
-			put(10, "Rechnung gestellt");
-			put(11, "Ware eingegangen");
-			put(12, "Zahlung durchgeführt");
-			put(13, "Bestellung Storniert");
-			put(14, "Kreditor entsperrt");
-		}
-	};
-
-	public void db_05_md_MD_EVENTS() {
-		logger.debug("db_05_md_MD_EVENTS");
-
-		jdbcTemplate.update("DROP TABLE DKE.MD_EVENTS IF EXISTS CASCADE");
-		jdbcTemplate.update("CREATE CACHED TABLE DKE.MD_EVENTS ( ID INTEGER PRIMARY KEY, NAME VARCHAR(100))");
-
-		MD_EVENTS.entrySet().forEach(
-				e -> jdbcTemplate.update("insert into DKE.MD_EVENTS values (?, ?)", e.getKey(), e.getValue()));
-
-		logger.debug("db_05_md_MD_EVENTS:done");
 	}
 
 	public void db_10_raw_KREDITOR() {
@@ -220,6 +183,22 @@ public class CreateDB2 {
 		logger.debug("db_30_data_PROCESS:done");
 	}
 
+	public void db_30_data_MD_EVENTS() {
+		logger.debug("db_05_md_MD_EVENTS");
+
+		jdbcTemplate.update("DROP TABLE DKE.MD_EVENTS IF EXISTS CASCADE");
+//		jdbcTemplate.update("CREATE CACHED TABLE DKE.MD_EVENTS ( ID INTEGER PRIMARY KEY, NAME VARCHAR(100))");
+//
+//		MD_EVENTS.entrySet().forEach(
+//				e -> jdbcTemplate.update("insert into DKE.MD_EVENTS values (?, ?)", e.getKey(), e.getValue()));
+		jdbcTemplate.update("CREATE CACHED TABLE DKE.MD_EVENTS ( PROCESS_ID VARCHAR(20) NOT NULL, ID VARCHAR(50) NOT NULL, NAME VARCHAR(100), "
+				+ " PRIMARY KEY(PROCESS_ID, ID))");
+		jdbcTemplate.update("ALTER TABLE DKE.MD_EVENTS ADD FOREIGN KEY (PROCESS_ID) REFERENCES DKE.PROCESS (ID) ON DELETE CASCADE");
+
+		logger.debug("db_05_md_MD_EVENTS:done");
+	}
+
+
 	public void db_30_data_CASES() {
 		logger.debug("db_30_data_CASES");
 
@@ -239,7 +218,7 @@ public class CreateDB2 {
 		jdbcTemplate.update("DROP TABLE DKE.EVENTS IF EXISTS CASCADE");
 		jdbcTemplate.update("CREATE CACHED TABLE DKE.EVENTS ( ID INTEGER NOT NULL, CASE_ID INTEGER NOT NULL, "
 				+ "EVENT_TYPE VARCHAR(50) NOT NULL, EVENT_TS TIMESTAMP NOT NULL, PRIMARY KEY (ID, CASE_ID))"); // Eventdaten
-		jdbcTemplate.update("CREATE INDEX DKE.EVENTS_ACTIVITY ON DKE.EVENTS (EVENT_TYPE)");
+		jdbcTemplate.update("CREATE INDEX DKE.EVENTS_TYPE ON DKE.EVENTS (EVENT_TYPE)");
 
 		jdbcTemplate.update("ALTER TABLE DKE.EVENTS ADD FOREIGN KEY (CASE_ID) REFERENCES DKE.CASES (ID) ON DELETE CASCADE");
 
@@ -313,7 +292,7 @@ public class CreateDB2 {
 		db_00_createSchema();
 
 		// Stammdaten
-		db_05_md_MD_EVENTS();
+//		db_05_md_MD_EVENTS();
 
 		// input daten
 		db_10_raw_BESTELLPOSITION();
@@ -330,6 +309,7 @@ public class CreateDB2 {
 
 		// Daten
 		db_30_data_PROCESS();
+		db_30_data_MD_EVENTS();
 		db_30_data_CASES();
 		db_30_data_EVENTS();
 		db_30_data_EVENTS_DATA();
