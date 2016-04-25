@@ -11,9 +11,9 @@ import org.springframework.context.annotation.Configuration;
 
 import at.jku.dke.pm.config.Filelocations;
 import at.jku.dke.pm.services.CaseRepository;
-import at.jku.dke.pm.services.ModelRepository;
+import at.jku.dke.pm.services.ProcessRepository;
 import at.jku.dke.pm.services.repositories.JdbcCaseRepository;
-import at.jku.dke.pm.services.repositories.JdbcModelRepository;
+import at.jku.dke.pm.services.repositories.JdbcProcessRepository;
 
 @Configuration
 @EnableAutoConfiguration()//exclude = { ThymeleafAutoConfiguration.class })
@@ -50,8 +50,8 @@ public class ApplicationConfig {
 	}
 
 	@Bean
-	public ModelRepository modelRepository() {
-		return new JdbcModelRepository(dataSource());
+	public ProcessRepository processRepository() {
+		return new JdbcProcessRepository(dataSource());
 	}
 
 }

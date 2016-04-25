@@ -24,6 +24,7 @@ import at.jku.dke.pm.collect.CaseCollector;
 import at.jku.dke.pm.config.Filelocations;
 import at.jku.dke.pm.domain.Case;
 import at.jku.dke.pm.domain.Event;
+import at.jku.dke.pm.domain.Events;
 import at.jku.dke.pm.services.CaseRepository;
 import at.jku.dke.pm.services.repositories.JdbcCaseRepository;
 import at.jku.dke.pm.web.model.graphlib.Edge;
@@ -96,14 +97,19 @@ public class DkeCaseCollector {
 
 	@Test
 	public void extractDkeCases() {
+
 		logger.debug("delete process : {}",
 				jdbcTemplate.update("delete from PROCESS where ID = ?", BestellPosCaseCollector.PROCESS_ID));
 
-		logger.debug("delete cases : {}",
+		logger.debug("delete cases   : {}",
 				jdbcTemplate.update("delete from CASES where PROCESS_ID = ?", BestellPosCaseCollector.PROCESS_ID));
 
-		logger.debug("delete cases : {}",
-				jdbcTemplate.update("insert into PROCESS (ID, NAME) values (?, ?)", BestellPosCaseCollector.PROCESS_ID, "DKE Praktikum"));
+		logger.debug("insert process : {}", jdbcTemplate.update("insert into PROCESS (ID, NAME) values (?, ?)",
+				BestellPosCaseCollector.PROCESS_ID, "DKE Praktikum"));
+
+		Events.MD_EVENTS.entrySet().forEach(
+				e -> jdbcTemplate.update("insert into DKE.MD_EVENTS values (?, ?, ?)",
+						BestellPosCaseCollector.PROCESS_ID, e.getKey(), e.getValue()));
 
 		// cases laden
 		List<Case> cases = collector.identifyCases();
@@ -124,8 +130,9 @@ public class DkeCaseCollector {
 		logger.debug("delete cases : {}",
 				jdbcTemplate.update("delete from CASES where PROCESS_ID = ?", BestellPosCaseCollector.PROCESS_ID));
 
-//		logger.debug("delete cases : {}",
-//				jdbcTemplate.update("insert into PROCESS (ID, NAME) values (?, ?)", BestellPosCaseCollector.PROCESS_ID, "DKE Praktikum"));
+		// logger.debug("delete cases : {}",
+		// jdbcTemplate.update("insert into PROCESS (ID, NAME) values (?, ?)", BestellPosCaseCollector.PROCESS_ID,
+		// "DKE Praktikum"));
 
 	}
 
@@ -216,6 +223,13 @@ public class DkeCaseCollector {
 	}
 
 	@Test
+	public void mdEventsTest() {
+
+		jdbcTemplate.queryForList("select * from MD_EVENTS").forEach(d -> logger.debug("MdEvents: {}", d));
+
+	}
+
+	@Test
 	public void d3ProcessGraphTest() throws Exception {
 
 		Case c = caseRepository.findById(180);
@@ -260,9 +274,9 @@ public class DkeCaseCollector {
 
 		Map<String, Node> nodes = new HashMap<>();
 		Map<String, Edge> edges = new HashMap<>();
-		
+
 		String processId = XESLoader.PROCESS_TELECLAIMS;
-//		processId = BestellPosCaseCollector.PROCESS_ID;
+		// processId = BestellPosCaseCollector.PROCESS_ID;
 		List<Integer> ids = jdbcTemplate.queryForList("select ID from cases where process_id = ?", Integer.class,
 				processId);
 

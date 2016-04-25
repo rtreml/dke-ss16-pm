@@ -15,24 +15,29 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
 import at.jku.dke.pm.domain.Case;
+import at.jku.dke.pm.domain.EventType;
 import at.jku.dke.pm.domain.Model;
-import at.jku.dke.pm.domain.ProcessInfo;
-import at.jku.dke.pm.services.ModelRepository;
+import at.jku.dke.pm.domain.ProcessData;
+import at.jku.dke.pm.services.ProcessRepository;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class JdbcModelRepository implements ModelRepository {
+public class JdbcProcessRepository implements ProcessRepository {
 
-	protected static final Logger logger = LoggerFactory.getLogger(JdbcModelRepository.class);
+	protected static final Logger logger = LoggerFactory.getLogger(JdbcProcessRepository.class);
 
 	protected final JdbcTemplate template;
 
-	public JdbcModelRepository(DataSource dataSource) {
+	public JdbcProcessRepository(DataSource dataSource) {
 		this.template = new JdbcTemplate(dataSource);
 	}
 
+	protected final static String SQL_LOAD_ALL_PROCESSINFO = "select * from PROCESS order by NAME";
+
 	protected final static String SQL_LOAD_PROCESSINFO = "select * from PROCESS where ID = ?";
+
+	protected final static String SQL_LOAD_EVENTTYPES = "select * from MD_EVENTS where PROCESS_ID = ? order by ID";
 
 	protected final static String SQL_LOAD_ALL_MODEL = "select FOOTPRINT, count(*) as NO_CASE from CASES where PROCESS_ID = ? group by FOOTPRINT order by 2 DESC";
 
@@ -41,23 +46,37 @@ public class JdbcModelRepository implements ModelRepository {
 	protected final static String SQL_LOAD_MODEL_CASES = "select * from CASES where PROCESS_ID = ? and FOOTPRINT = ?";
 
 	@Override
-	public ProcessInfo findProcessById(String processId) {
-		return template.query(SQL_LOAD_PROCESSINFO, new RowMapper<ProcessInfo>() {
-
-			@Override
-			public ProcessInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
-				ProcessInfo i = new ProcessInfo();
-				
-				i.setId(rs.getString("ID"));
-				i.setName(rs.getString("NAME"));
-				
-				return i;
-			}
-			
-		}, processId).stream().findFirst().orElse(null);
+	public List<ProcessData> findAll() {
+		return template.query(SQL_LOAD_ALL_PROCESSINFO, processMapper);
 	}
+
 	@Override
-	public Model findById(String processId, String id) {
+	public ProcessData findById(String processId) {
+		ProcessData process = template.query(SQL_LOAD_PROCESSINFO, processMapper, processId).stream().findFirst()
+				.orElse(null);
+
+		if (process != null) {
+			process.setModels(findAllModels(processId));
+			process.setEventTypes(template.query(SQL_LOAD_EVENTTYPES, new RowMapper<EventType> () {
+
+				@Override
+				public EventType mapRow(ResultSet rs, int rowNum) throws SQLException {
+					EventType e = new EventType();
+					
+					e.setId(rs.getString("ID"));
+					e.setName(rs.getString("NAME"));
+					
+					return e;
+				}
+				
+			},processId));
+		}
+
+		return process;
+	}
+
+	@Override
+	public Model findModelById(String processId, String id) {
 		Model m = template.query(SQL_LOAD_MODEL, modelMapper, processId, id).stream().findFirst().orElse(null);
 
 		if (m != null) {
@@ -93,10 +112,24 @@ public class JdbcModelRepository implements ModelRepository {
 	}
 
 	@Override
-	public List<Model> findAll(String processId) {
+	public List<Model> findAllModels(String processId) {
 		List<Model> m = template.query(SQL_LOAD_ALL_MODEL, modelMapper, processId);
 		return m;
 	}
+
+	protected final static RowMapper<ProcessData> processMapper = new RowMapper<ProcessData>() {
+
+		@Override
+		public ProcessData mapRow(ResultSet rs, int rowNum) throws SQLException {
+			ProcessData i = new ProcessData();
+
+			i.setId(rs.getString("ID"));
+			i.setName(rs.getString("NAME"));
+
+			return i;
+		}
+
+	};
 
 	protected final static RowMapper<Model> modelMapper = new RowMapper<Model>() {
 
@@ -124,6 +157,5 @@ public class JdbcModelRepository implements ModelRepository {
 		}
 
 	};
-
 
 }

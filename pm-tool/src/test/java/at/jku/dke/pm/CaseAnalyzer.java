@@ -73,7 +73,7 @@ public class CaseAnalyzer {
 	@Test
 	public void generateFootprint() {
 		String processId = XESLoader.PROCESS_TELECLAIMS;
-//		processId = BestellPosCaseCollector.PROCESS_ID;
+		processId = BestellPosCaseCollector.PROCESS_ID;
 		
 //		jdbcTemplate.queryForList(
 //				"select count(*) || '|' || group_concat(EVENT_TYPE order by EVENT_TS ASC separator '|') from EVENTS "
@@ -83,7 +83,7 @@ public class CaseAnalyzer {
 		logger.debug(
 				"update: {}",
 				jdbcTemplate
-						.update("update CASES c set FOOTPRINT = (select count(*) || '|' || group_concat(EVENT_TYPE order by EVENT_TS ASC separator '|') from EVENTS e "
+						.update("update CASES c set FOOTPRINT = (select lpad(count(*),4,'0') || '|' || group_concat(EVENT_TYPE order by EVENT_TS ASC separator '|') from EVENTS e "
 								+ " where e.CASE_ID = c.ID group by CASE_ID) where c.PROCESS_ID = ?",
 								processId));
 		// jdbcTemplate.update("truncate table CASES AND COMMIT");
