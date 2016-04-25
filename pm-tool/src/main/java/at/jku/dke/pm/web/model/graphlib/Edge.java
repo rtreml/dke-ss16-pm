@@ -19,8 +19,11 @@ public class Edge {
 	protected String w;
 
 	// values
-	protected Map<String, String> value = new HashMap<String, String>();
+	protected Map<String, String> value = new HashMap<>();
 
+	//metainformation
+	protected Map<String, Object> meta = new HashMap<>();
+	
 	public Edge(String v, String w) {
 		this.v = v;
 		this.w = w;
@@ -50,7 +53,16 @@ public class Edge {
 		this.value = value;
 	}
 
-	
+	public Map<String, Object> getMeta() {
+		return meta;
+	}
+
+	public void setMeta(Map<String, Object> meta) {
+		this.meta = meta;
+	}
+
+
+
 	//fluent values API
 	//default
 	public static final String ARROWHEAD = "arrowhead"; //normal, vee
@@ -97,5 +109,15 @@ public class Edge {
 		return this;
 	}
 
+	//meta information
+	public Edge addMeta(String key, Object val) {
+		this.meta.put(key, val);
+		return this;
+	}
+
+	public Edge addMetas(Map<String, Object> metas) {
+		this.meta.putAll(metas);
+		return this;
+	}
 
 }

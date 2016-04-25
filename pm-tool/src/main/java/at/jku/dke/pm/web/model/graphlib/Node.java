@@ -21,6 +21,9 @@ public class Node {
 	// values
 	protected Map<String, String> value = new HashMap<String, String>();
 
+	// metainformation
+	protected Map<String, Object> meta = new HashMap<>();
+
 	public Node(String v) {
 		this.v = v;
 	}
@@ -41,7 +44,15 @@ public class Node {
 		this.value = value;
 	}
 
-		@Override
+	public Map<String, Object> getMeta() {
+		return meta;
+	}
+
+	public void setMeta(Map<String, Object> meta) {
+		this.meta = meta;
+	}
+
+	@Override
 	public boolean equals(Object obj) {
 		if (obj == null) {
 			return false;
@@ -60,30 +71,31 @@ public class Node {
 	public int hashCode() {
 		return new HashCodeBuilder(17, 37).append(v).toHashCode();
 	}
-	//fluent values API
+
+	// fluent values API
 	/*
 	 * var NODE_DEFAULT_ATTRS = {
-  paddingLeft: 10,
-  paddingRight: 10,
-  paddingTop: 10,
-  paddingBottom: 10,
-  rx: 0,
-  ry: 0,
-  shape: "rect"
-};
+	 * paddingLeft: 10,
+	 * paddingRight: 10,
+	 * paddingTop: 10,
+	 * paddingBottom: 10,
+	 * rx: 0,
+	 * ry: 0,
+	 * shape: "rect"
+	 * };
 	 */
 	public static final String CSS_CLASS = "class";
 	public static final String LABEL = "label";
-	public static final String SHAPE = "shape"; //rect, circle, ellipse
+	public static final String SHAPE = "shape"; // rect, circle, ellipse
 	//
 	public static final String STYLE = "style";
 	public static final String LABEL_STYLE = "labelStyle";
-	public static final String LABEL_TYPE = "labelType"; //html
-	
+	public static final String LABEL_TYPE = "labelType"; // html
+
 	public static Node create(String v) {
 		return new Node(v);
 	}
-	
+
 	public Node cssClass(String cssClass) {
 		this.value.put(CSS_CLASS, cssClass);
 		return this;
@@ -113,6 +125,16 @@ public class Node {
 		this.value.putAll(values);
 		return this;
 	}
-	
+
+	// meta information
+	public Node addMeta(String key, Object val) {
+		this.meta.put(key, val);
+		return this;
+	}
+
+	public Node addMetas(Map<String, Object> metas) {
+		this.meta.putAll(metas);
+		return this;
+	}
 
 }
