@@ -3,6 +3,9 @@ package at.jku.dke.pm.web.model.graphlib;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * @formatter:off { "v": "a", "w": "b", "value": { "label": "edge a->b" } }
  * @formatter:on
@@ -24,7 +27,8 @@ public class Edge {
 	//metainformation
 	protected Map<String, Object> meta = new HashMap<>();
 	
-	public Edge(String v, String w) {
+	@JsonCreator
+	public Edge(@JsonProperty("v") String v, @JsonProperty("w") String w) {
 		this.v = v;
 		this.w = w;
 	}
@@ -53,6 +57,10 @@ public class Edge {
 		this.value = value;
 	}
 
+	public String getValue(String key) {
+		return value.get(key);
+	}
+	
 	public Map<String, Object> getMeta() {
 		return meta;
 	}
@@ -61,6 +69,9 @@ public class Edge {
 		this.meta = meta;
 	}
 
+	public Object getMeta(String key) {
+		return meta.get(key);
+	}
 
 
 	//fluent values API

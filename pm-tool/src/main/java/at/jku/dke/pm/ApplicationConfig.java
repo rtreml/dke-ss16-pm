@@ -12,6 +12,8 @@ import org.springframework.context.annotation.Configuration;
 import at.jku.dke.pm.config.Filelocations;
 import at.jku.dke.pm.services.CaseRepository;
 import at.jku.dke.pm.services.ProcessRepository;
+import at.jku.dke.pm.services.ProcessService;
+import at.jku.dke.pm.services.impl.SimpleProcessService;
 import at.jku.dke.pm.services.repositories.JdbcCaseRepository;
 import at.jku.dke.pm.services.repositories.JdbcProcessRepository;
 
@@ -54,4 +56,8 @@ public class ApplicationConfig {
 		return new JdbcProcessRepository(dataSource());
 	}
 
+	@Bean
+	public ProcessService processService() {
+		return new SimpleProcessService();
+	}
 }

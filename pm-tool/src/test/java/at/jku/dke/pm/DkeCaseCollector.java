@@ -230,6 +230,13 @@ public class DkeCaseCollector {
 	}
 
 	@Test
+	public void casesTest() {
+
+		jdbcTemplate.queryForList("select * from CASES LIMIT 10").forEach(d -> logger.debug("cases: {}", d));
+
+	}
+
+	@Test
 	public void d3ProcessGraphTest() throws Exception {
 
 		Case c = caseRepository.findById(180);
@@ -239,7 +246,7 @@ public class DkeCaseCollector {
 
 		Graph g = new Graph(true, false, false);
 
-		g.addNode(Node.create("start").label("Start").cssClass("pm_start"));
+		g.addNode(Node.create("start").label("Start").shape("circle").cssClass("pm_start"));
 		Event last = null;
 		for (Event e : c.getEvents()) {
 			g.addNode(Node.create(String.valueOf(e.getId())).label(e.getType() + " " + e.getEventTs()));
@@ -252,7 +259,7 @@ public class DkeCaseCollector {
 			}
 			last = e;
 		}
-		g.addNode(Node.create("end").label("End").cssClass("pm_end"));
+		g.addNode(Node.create("end").label("End").shape("circle").cssClass("pm_end"));
 		g.addEdge(Edge.create(String.valueOf(last.getId()), "end"));
 
 		ObjectMapper mapper = new ObjectMapper();
@@ -286,8 +293,8 @@ public class DkeCaseCollector {
 
 			// jdbcTemplate.queryForList("select * from CASES limit 5").forEach(d -> logger.debug("case: {}", d));
 
-			nodes.put("start", Node.create("start").label("Start").cssClass("pm_start"));
-			nodes.put("end", Node.create("end").label("End").cssClass("pm_end"));
+			nodes.put("start", Node.create("start").label("Start").shape("circle").cssClass("pm_start"));
+			nodes.put("end", Node.create("end").label("End").shape("circle").cssClass("pm_end"));
 
 			Event last = null;
 			for (Event e : c.getEvents()) {

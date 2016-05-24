@@ -18,4 +18,11 @@ public class SimpleController {
 		return "PmTool";
 	} 
 
+	@RequestMapping("/application")
+	public String showApplication(Model model) {
+
+		logger.debug("index !!");
+		return "application";
+	} 
+
 }

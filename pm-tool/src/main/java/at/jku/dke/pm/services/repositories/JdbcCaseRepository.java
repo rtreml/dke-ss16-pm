@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -91,27 +92,6 @@ public class JdbcCaseRepository implements CaseRepository {
 				});
 
 			}
-
-			// template.batchUpdate(SQL_INSERT_EVENTS, new BatchPreparedStatementSetter() {
-			//
-			// @Override
-			// public void setValues(PreparedStatement ps, int i) throws SQLException {
-			// Event e = c.getEvents().get(i);
-			//
-			// ps.setInt(1, e.getId());
-			// ps.setInt(2, c.getId());
-			// ps.setString(3, e.getType());
-			// ps.setTimestamp(4, Timestamp.valueOf(e.getEventTs()));
-			//
-			//
-			// }
-			//
-			// @Override
-			// public int getBatchSize() {
-			// return c.getEvents().size();
-			// }
-			//
-			// });
 		}
 
 		return c;
@@ -123,34 +103,7 @@ public class JdbcCaseRepository implements CaseRepository {
 
 	@Override
 	public Case findById(int caseId) {
-		Case c = template.query(SQL_LOAD_CASE, new RowMapper<Case>() {
-
-			protected ObjectMapper mapper = new ObjectMapper();
-
-			@Override
-			public Case mapRow(ResultSet rs, int rowNum) throws SQLException {
-				Case c = new Case();
-
-				c.setId(rs.getInt("ID"));
-				c.setProcessId(rs.getString("PROCESS_ID"));
-				c.setName(rs.getString("NAME"));
-				c.setEventId(rs.getInt("EVENT_ID"));
-
-				String identStr = rs.getString("IDENTIFIER");
-				Map<String, Object> ident = Collections.emptyMap();
-				try {
-					if (identStr != null) {
-						ident = mapper.readValue(identStr, new TypeReference<Map<String, Object>>() {
-						});
-					}
-				} catch (IOException e) {
-					logger.error("JSON Error", e);
-				}
-				c.setIdentifier(ident);
-				return c;
-			}
-
-		}, caseId).stream().findFirst().orElse(null);
+		Case c = template.query(SQL_LOAD_CASE, caseRowMapper, caseId).stream().findFirst().orElse(null);
 
 		if (c != null) {
 			c.setEvents(template.query(SQL_LOAD_CASE_EVENTS, EventRowMapper.caseEvent(template, c.getId()), c.getId()));
@@ -159,11 +112,59 @@ public class JdbcCaseRepository implements CaseRepository {
 		return c;
 	}
 
+	protected final static String SQL_FIND_CASES_BY_FOOTPRINT = "select * from CASES where PROCESS_ID = ? and FOOTPRINT = ?";
+
+	@Override
+	public List<Case> findByFootprint(String processId, String footprint) {
+		List<Case> cases = template.query(SQL_FIND_CASES_BY_FOOTPRINT, caseRowMapper, processId, footprint);
+
+		cases.forEach(c -> c.setEvents(template.query(SQL_LOAD_CASE_EVENTS,
+				EventRowMapper.caseEvent(template, c.getId()), c.getId())));
+
+		return cases;
+	};
+
+	protected final RowMapper<Case> caseRowMapper = new RowMapper<Case>() {
+
+		protected ObjectMapper mapper = new ObjectMapper();
+
+		@Override
+		public Case mapRow(ResultSet rs, int rowNum) throws SQLException {
+			Case c = new Case();
+
+			c.setId(rs.getInt("ID"));
+			c.setProcessId(rs.getString("PROCESS_ID"));
+			c.setName(rs.getString("NAME"));
+			c.setEventId(rs.getInt("EVENT_ID"));
+
+			Timestamp ts = rs.getTimestamp("START_TS");
+			c.setStartTs(ts != null ? ts.toLocalDateTime() : null);
+			ts = rs.getTimestamp("END_TS");
+			c.setEndTs(ts != null ? ts.toLocalDateTime() : null);
+			c.setDuration(Duration.ofSeconds(rs.getLong("DURATION")));
+			c.setFootprint(rs.getString("FOOTPRINT"));
+
+			String identStr = rs.getString("IDENTIFIER");
+			Map<String, Object> ident = Collections.emptyMap();
+			try {
+				if (identStr != null) {
+					ident = mapper.readValue(identStr, new TypeReference<Map<String, Object>>() {
+					});
+				}
+			} catch (IOException e) {
+				logger.error("JSON Error", e);
+			}
+			c.setIdentifier(ident);
+			return c;
+		}
+
+	};
+
 	public static class CasePSC implements PreparedStatementCreator {
 
 		protected ObjectMapper mapper = new ObjectMapper();
 
-		protected final String SQL_INSERT_CASE = "insert into CASES (PROCESS_ID, NAME, EVENT_ID, IDENTIFIER) VALUES (?, ?, ?, ?)";
+		protected final String SQL_INSERT_CASE = "insert into CASES (PROCESS_ID, NAME, EVENT_ID, IDENTIFIER, START_TS, END_TS, DURATION, FOOTPRINT) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
 		protected final Case c;
 
@@ -187,39 +188,14 @@ public class JdbcCaseRepository implements CaseRepository {
 			}
 
 			ps.setString(4, ident);
+			ps.setTimestamp(5, Timestamp.valueOf(c.getStartTs()));
+			ps.setTimestamp(6, Timestamp.valueOf(c.getEndTs()));
+			ps.setLong(7, c.getDuration().getSeconds());
+			ps.setString(8, c.getFootprint());
 
 			return ps;
 		}
 
-	};
-
-	// // TODO
-	// public static class BatchEventDataSetter implements BatchPreparedStatementSetter {
-	//
-	// protected final Event event;
-	//
-	// protected final List<String> keys;
-	//
-	// public BatchEventDataSetter(Event event) {
-	// this.event = event;
-	// this.keys = new ArrayList<String>(event.getAttributes().keySet());
-	// }
-	//
-	// @Override
-	// public void setValues(PreparedStatement ps, int i) throws SQLException {
-	// ps.setInt(1, event.getId());
-	//
-	// String key = keys.get(i);
-	// ps.setString(2, key);
-	// ps.setString(3, String.valueOf(event.getAttributes().get(key)));
-	//
-	// }
-	//
-	// @Override
-	// public int getBatchSize() {
-	// return keys.size();
-	// }
-	//
-	// }
+	}
 
 }

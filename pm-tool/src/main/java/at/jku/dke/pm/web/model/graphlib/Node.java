@@ -6,6 +6,9 @@ import java.util.Map;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * @formatter:off { "v": "a", "value": { "label": "node a" } },
  * @formatter:on
@@ -24,7 +27,8 @@ public class Node {
 	// metainformation
 	protected Map<String, Object> meta = new HashMap<>();
 
-	public Node(String v) {
+	@JsonCreator
+	public Node(@JsonProperty("v") String v) {
 		this.v = v;
 	}
 
@@ -44,12 +48,20 @@ public class Node {
 		this.value = value;
 	}
 
+	public String getValue(String key) {
+		return value.get(key);
+	}
+
 	public Map<String, Object> getMeta() {
 		return meta;
 	}
 
 	public void setMeta(Map<String, Object> meta) {
 		this.meta = meta;
+	}
+
+	public Object getMeta(String key) {
+		return meta.get(key);
 	}
 
 	@Override

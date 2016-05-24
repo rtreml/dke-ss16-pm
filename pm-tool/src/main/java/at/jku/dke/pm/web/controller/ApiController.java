@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import at.jku.dke.pm.domain.ProcessData;
-import at.jku.dke.pm.services.ProcessRepository;
+import at.jku.dke.pm.services.ProcessService;
 
 @Controller
 @RequestMapping(value = "/api")
@@ -20,14 +20,18 @@ public class ApiController {
 	protected static final Logger logger = LoggerFactory.getLogger(ApiController.class);
 
 	@Autowired
-	protected ProcessRepository processRepository;
-	
+	protected ProcessService processService;
+
+	@RequestMapping(value = "/test")
+	public String test() {
+
+		return "apitest";
+	}
+
 	@RequestMapping(value = "/process", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
 	public List<ProcessData> processList() {
-
-		return processRepository.findAll();
-		
-	} 
+		return processService.getAvailableProcesses();
+	}
 
 }

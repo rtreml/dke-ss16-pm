@@ -18,6 +18,7 @@ import at.jku.dke.pm.domain.Model;
 import at.jku.dke.pm.domain.ProcessData;
 import at.jku.dke.pm.services.CaseRepository;
 import at.jku.dke.pm.services.ProcessRepository;
+import at.jku.dke.pm.services.ProcessService;
 
 @Controller
 @RequestMapping(value = "/api/{processId}")
@@ -29,15 +30,19 @@ public class ProcessApiController {
 	protected CaseRepository caseRepository;
 	
 	@Autowired
+	@Deprecated
 	protected ProcessRepository processRepository;
-	
+
+	@Autowired
+	protected ProcessService processService;
+
 	@RequestMapping(method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
 	public ResponseEntity<ProcessData> processInfo(@PathVariable("processId") String processId) {
 
 		logger.debug("processId = {}", processId);
 		
-		ProcessData p = processRepository.findById(processId);
+		ProcessData p = processService.getProcess(processId, null);
 		
 		return p != null ? ResponseEntity.ok(p) : new ResponseEntity<>(HttpStatus.NOT_FOUND);
 	} 

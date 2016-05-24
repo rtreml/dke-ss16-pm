@@ -1,7 +1,7 @@
 package at.jku.dke.pm.domain;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -16,6 +16,8 @@ public class ProcessData {
 
 	protected String name;
 
+	protected Map<String, String> filter;
+	
 	protected List<EventType> eventTypes;
 	
 	protected List<Model> models;
@@ -34,6 +36,14 @@ public class ProcessData {
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public Map<String, String> getFilter() {
+		return filter;
+	}
+
+	public void setFilter(Map<String, String> filter) {
+		this.filter = filter;
 	}
 
 	public List<EventType> getEventTypes() {
