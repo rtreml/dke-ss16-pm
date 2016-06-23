@@ -24,6 +24,7 @@ import at.jku.dke.pm.collect.CaseCollector;
 import at.jku.dke.pm.config.Filelocations;
 import at.jku.dke.pm.domain.Case;
 import at.jku.dke.pm.domain.Event;
+import at.jku.dke.pm.domain.EventType;
 import at.jku.dke.pm.domain.Events;
 import at.jku.dke.pm.services.CaseRepository;
 import at.jku.dke.pm.services.repositories.JdbcCaseRepository;
@@ -204,6 +205,23 @@ public class DkeCaseCollector {
 				.queryForList(
 						"select * from RAW_EVENTS, RAW_EVENTS_DATA where raw_events.id = event_id and raw_events.id in (1742,1743) order by event_id, VALUE, EVENT_TS")
 				.forEach(d -> logger.debug("??????: {}", d));
+
+	}
+
+	@Test
+	public void gegencheckTest() {
+		// jdbcTemplate.queryForList("select * from raw_EVENTS r where r.id is null").forEach(d ->
+		// logger.debug("MISS: {}", d));
+		jdbcTemplate.queryForList(
+				"select * from RAW_EVENTS where EVENT_TYPE = ?", Events.BESTELLUNG_STORNIERT).forEach(
+				d -> logger.debug("MISS: {}", d));
+
+//		jdbcTemplate.queryForList("select * from EVENTS where ID in (1742,1743)").forEach(
+//				d -> logger.debug("->EVENTS: {}", d));
+//		jdbcTemplate
+//				.queryForList(
+//						"select * from RAW_EVENTS, RAW_EVENTS_DATA where raw_events.id = event_id and raw_events.id in (1742,1743) order by event_id, VALUE, EVENT_TS")
+//				.forEach(d -> logger.debug("??????: {}", d));
 
 	}
 

@@ -23,8 +23,9 @@ public class BasicModelAnalyzer implements ModelAnalyzer {
 	private static final String META_LABEL = "label";
 	private static final String META_SHAPE = "shape";
 	private static final String META_CSS = "css";
-	
+
 	private static final String META_COUNT = "count";
+	private static final String META_PASS_COUNT = "countPass";
 	private static final String META_DURATION = "duration";
 
 	@SuppressWarnings("unchecked")
@@ -37,11 +38,14 @@ public class BasicModelAnalyzer implements ModelAnalyzer {
 		model.setNoCases(cases.size());
 
 		// Nodes vorbereiten
-		nodes.put("start", ProcessNet.Node.create("start").addData(META_LABEL, "Start").addData(META_SHAPE, "circle").addData(META_CSS,"pm_start"));
-		nodes.put("end", ProcessNet.Node.create("end").addData(META_LABEL, "End").addData(META_SHAPE,"circle").addData(META_CSS,"pm_end"));
+		nodes.put("start", ProcessNet.Node.create("start").addData(META_LABEL, "Start").addData(META_SHAPE, "circle")
+				.addData(META_CSS, "pm_start"));
+		nodes.put("end", ProcessNet.Node.create("end").addData(META_LABEL, "End").addData(META_SHAPE, "circle")
+				.addData(META_CSS, "pm_end"));
 
 		// Cases analysieren
 		List<Duration> durations = new ArrayList<>();
+		boolean firstPass = true;
 		for (Case c : cases) {
 			// 1) sort events
 			c.getEvents().sort((e1, e2) -> e1.getEventTs().compareTo(e2.getEventTs()));
@@ -55,22 +59,34 @@ public class BasicModelAnalyzer implements ModelAnalyzer {
 			// 3)graph aufbauen
 			Event last = null;
 			for (Event e : c.getEvents()) {
-				((AtomicInteger) nodes.computeIfAbsent(e.getType(), k -> ProcessNet.Node.create(k).addData(META_LABEL, k)).getData()
-						.computeIfAbsent(META_COUNT, k -> new AtomicInteger(0))).incrementAndGet();
+				ProcessNet.Node node = nodes.computeIfAbsent(e.getType(),
+						k -> ProcessNet.Node.create(k).addData(META_LABEL, k));
+				((AtomicInteger) node.getData().computeIfAbsent(META_COUNT, k -> new AtomicInteger(0)))
+						.incrementAndGet();
+				if (firstPass) {
+					((AtomicInteger) node.getData().computeIfAbsent(META_PASS_COUNT, k -> new AtomicInteger(0)))
+							.incrementAndGet();
+				}
+				// ((AtomicInteger) nodes.computeIfAbsent(e.getType(), k ->
+				// ProcessNet.Node.create(k).addData(META_LABEL, k)).getData()
+				// .computeIfAbsent(META_COUNT, k -> new AtomicInteger(0))).incrementAndGet();
 
 				if (last != null) {
 					String l = last.getType();
-					ProcessNet.Edge edge = edges.computeIfAbsent(String.format("%s-%s", last.getType(), e.getType()), k -> ProcessNet.Edge
-							.create(l, e.getType()).addData(META_LABEL, k));
+					ProcessNet.Edge edge = edges.computeIfAbsent(String.format("%s-%s", last.getType(), e.getType()),
+							k -> ProcessNet.Edge.create(l, e.getType()).addData(META_LABEL, k));
 					((AtomicInteger) edge.getData().computeIfAbsent(META_COUNT, k -> new AtomicInteger(0)))
 							.incrementAndGet();
 					((List<Duration>) edge.getData().computeIfAbsent(META_DURATION, k -> new ArrayList<Duration>()))
 							.add(Duration.between(last.getEventTs(), e.getEventTs()));
-
+					if (firstPass) {
+						((AtomicInteger) edge.getData().computeIfAbsent(META_PASS_COUNT, k -> new AtomicInteger(0)))
+								.incrementAndGet();
+					}
 					// edge.setValue(value);
 				} else {
 					ProcessNet.Edge edge = edges.computeIfAbsent(String.format("start-%s", e.getType()),
-							k -> ProcessNet.Edge.create("start", e.getType()).addData(META_LABEL,k));
+							k -> ProcessNet.Edge.create("start", e.getType()).addData(META_LABEL, k));
 					((AtomicInteger) edge.getData().computeIfAbsent(META_COUNT, k -> new AtomicInteger(0)))
 							.incrementAndGet();
 
@@ -80,9 +96,11 @@ public class BasicModelAnalyzer implements ModelAnalyzer {
 			}
 			String l = last.getType();
 			((AtomicInteger) edges
-					.computeIfAbsent(String.format("%s-end", last.getType()), k -> ProcessNet.Edge.create(l, "end").addData(META_LABEL, k))
-					.getData().computeIfAbsent(META_COUNT, k -> new AtomicInteger(0))).incrementAndGet();
+					.computeIfAbsent(String.format("%s-end", last.getType()),
+							k -> ProcessNet.Edge.create(l, "end").addData(META_LABEL, k)).getData()
+					.computeIfAbsent(META_COUNT, k -> new AtomicInteger(0))).incrementAndGet();
 
+			firstPass = false;
 		}
 
 		// durchschnittszeit

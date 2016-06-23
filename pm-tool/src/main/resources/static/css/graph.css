@@ -27,9 +27,15 @@ text {
   stroke-width: 1.5px;
 }
 
+.node circle {
+	stroke: #999;
+	fill: #fff;
+	stroke-width: 1.5px;
+}
+
 .edgePath path {
   stroke: #333;
-  stroke-width: 1.5px;
+//als function  stroke-width: 1.5px;
 }
 
 .pm_start rect {
@@ -47,6 +53,19 @@ text {
 
 
 
-.selected rect {
-	fill: blue;
+#svg-canvas .dke-selected circle{
+  stroke: red;
+  stroke-width: 3px;
+}
+
+#svg-canvas .dke-selected rect{
+  stroke: red;
+  stroke-width: 3px;
+}
+
+#svg-canvas .dke-selected path{
+  stroke: red;
+}
+#svg-canvas .dke-selected marker path{
+  fill: red;
 }

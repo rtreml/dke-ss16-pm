@@ -13,6 +13,7 @@
 <script type="text/javascript" th:src="@{/js/moment-with-locales.js}"></script>
 
 <script type="text/javascript" th:src="@{/js/d3/d3.js}"></script>
+<script type="text/javascript" th:src="@{/js/d3/d3.tip.v0.6.3.js}"></script>
 <script type="text/javascript" th:src="@{/js/dagre/dagre-d3.js}"></script>
 
 <script type="text/javascript" th:src="@{/js/dke/pm-tool.js}"></script>
@@ -21,32 +22,92 @@
 
 <style type="text/css">
 .node rect {
-  stroke: #999;
-  fill: #fff;
-  stroke-width: 1.5px;
+	stroke: #999;
+	fill: #fff;
+	stroke-width: 1.5px;
 }
 
 .node circle {
-  stroke: #999;
-  fill: #fff;
-  stroke-width: 1.5px;
+	stroke: #999;
+	fill: #fff;
+	stroke-width: 1.5px;
 }
 
 .edgePath path {
-  stroke: #333;
-  stroke-width: 1.5px;
+	stroke: #333;
+	stroke-width: 1.5px;
 }
 
 .pm_start circle {
-  stroke: #999;
-  fill: green;
-  stroke-width: 1.5px;
+	stroke: #999;
+	fill: green;
+	stroke-width: 1.5px;
 }
 
 .pm_end circle {
-  stroke: #999;
-  fill: red;
-  stroke-width: 1.5px;
+	stroke: #999;
+	fill: red;
+	stroke-width: 1.5px;
+}
+
+//
+processes
+
+.bar {
+	fill: blue;
+}
+
+.bar:hover {
+	fill: brown;
+}
+
+.axis {
+	font: 10px sans-serif;
+}
+
+.axis path, .axis line {
+	fill: none;
+	stroke: #000;
+	shape-rendering: crispEdges;
+}
+
+.x.axis path {
+	display: none;
+}
+
+//
+tooltip
+.d3-tip {
+	line-height: 1;
+	font-weight: bold;
+	padding: 12px;
+	background: rgba(0, 0, 0, 0.8);
+	color: #fff;
+	border-radius: 2px;
+}
+
+/* Creates a small triangle extender for the tooltip */
+.d3-tip:after {
+	box-sizing: border-box;
+	display: inline;
+	font-size: 10px;
+	width: 100%;
+	line-height: 1;
+	color: rgba(0, 0, 0, 0.8);
+	content: "\25BC";
+	position: absolute;
+	text-align: center;
+}
+
+/* Style northward tooltips differently */
+.d3-tip.n:after {
+	margin: -1px 0 0 0;
+	top: 100%;
+	left: 0;
+}
+
+.05__007c_k_a__007c_b_e__007c_p_e__007c_b_f__007c_p_s {
+	fill: orange;
 }
 </style>
 
@@ -117,6 +178,106 @@
 		svg.call(zoom);
 		
 	});
+	
+
+	
+	application.on(dke.Event.INIT, function(event){ 
+		var data = application.getModels();
+		//graph
+		// Set up an SVG group so that we can translate the final graph.
+		var svg = d3.select("#svg-processes");
+
+		var margin = {top: 20, right: 20, bottom: 30, left: 40},
+	    width = $("#svg-processes").width() - margin.left - margin.right,
+	    height = $("#svg-processes").height() - margin.top - margin.bottom;
+		console.log("SVG-size", svg.style('width'), svg.style('height'), width, height);
+		
+		var x = d3.scale.ordinal()
+	    .rangeRoundBands([0, width], .1);
+
+		var y = d3.scale.sqrt()
+		    .range([height, 0]);
+
+		var xAxis = d3.svg.axis()
+		    .scale(x)
+		    .orient("bottom");
+
+		var yAxis = d3.svg.axis()
+		    .scale(y)
+		    .orient("left")
+		    .ticks(3);
+		
+		var tip = d3.tip()
+		  .attr('class', 'd3-tip')
+		  .offset([-10, 0])
+		  .html(function(d) {
+		    return "<strong>ID:</strong> <span style='color:red'>" + d.footprint + "</span>";
+		  })
+		  
+		svg = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+		
+		svg.call(tip);
+		
+		console.log("init-process", data, svg);
+		
+		x.domain(data.map(function(d) { return d.footprint; }));
+		y.domain([0, d3.max(data, function(d) { return d.noCases; })]);
+
+	  svg.append("g")
+	      .attr("class", "x axis")
+	      .attr("transform", "translate(0," + height + ")");
+/* 	      .call(xAxis)
+	     .selectAll("text")
+	        .attr("y", 0)
+    		.attr("x", 9)
+    	    .attr("dy", ".35em")
+	       .attr("transform", "rotate(90)")
+    	   .style("text-anchor", "start");
+ */
+	  svg.append("g")
+	      .attr("class", "y axis")
+	      .call(yAxis)
+	    .append("text")
+	      .attr("transform", "rotate(-90)")
+	      .attr("y", 6)
+	      .attr("dy", ".71em")
+	      .style("text-anchor", "end")
+	      .text("Frequency");
+
+	  svg.selectAll(".bar")
+	      .data(data)
+	    .enter().append("rect")
+	      .attr("class", "bar")
+	      .attr("x", function(d) { return x(d.footprint); })
+	      .attr("width", x.rangeBand())
+	      .attr("y", function(d) { return y(d.noCases); })
+	      .attr("height", function(d) { return height - y(d.noCases); })
+	      .on("click", function(data) {
+	    	  console.log("CLICK ??", data);
+	    	  application.selectModels(data.footprint);
+	      })
+	      .on('mouseover', tip.show)
+      	  .on('mouseout', tip.hide);
+	  
+	  svg.selectAll('.bar').each(
+			    function(){
+			    	console.log("classed", this, d3.select(this).data()[0].footprint);
+			        var elt = d3.select(this);
+			        elt.classed(makeSafeForCSS(elt.data()[0].footprint), true);
+			    }
+		);
+
+
+	}, this);
+
+	function makeSafeForCSS(name) {
+	    return name.replace(/[^a-z0-9]/g, function(s) {
+	        var c = s.charCodeAt(0);
+	        if (c == 32) return '-';
+	        if (c >= 65 && c <= 90) return '_' + s.toLowerCase();
+	        return '__' + ('000' + c.toString(16)).slice(-4);
+	    });
+	}
 	/*]]>*/
 </script>
 
@@ -129,5 +290,6 @@
 	</div>
 	<div id='result'></div>
 	<svg id="svg-canvas" width="900" height="500" style="border: 1px solid black"></svg>
+	<svg id="svg-processes" width="900" height="200" style="border: 1px solid red"></svg>
 </body>
 </html>

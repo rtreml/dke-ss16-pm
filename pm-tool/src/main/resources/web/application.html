@@ -7,7 +7,7 @@
 
 <!-- bootstrap -->
 <link rel="stylesheet" th:href="@{/js/bootstrap/css/bootstrap.css}" type="text/css" />
-<link rel="stylesheet" th:href="@{/js/bootstrap/css/bootstrap-theme.css}" type="text/css" />
+<!-- <link rel="stylesheet" th:href="@{/js/bootstrap/css/bootstrap-theme.css}" type="text/css" /> -->
 
 <link rel="stylesheet" th:href="@{/js/jqwidgets/styles/jqx.base.css}" type="text/css" />
 <link rel="stylesheet" th:href="@{/js/jqwidgets/styles/jqx.bootstrap.css}" type="text/css" />
@@ -24,16 +24,30 @@
 <script type="text/javascript" th:src="@{/js/jqwidgets/jqxscrollbar.js}"></script>
 <script type="text/javascript" th:src="@{/js/jqwidgets/jqxlistbox.js}"></script>
 <script type="text/javascript" th:src="@{/js/jqwidgets/jqxcombobox.js}"></script>
+<script type="text/javascript" th:src="@{/js/jqwidgets/jqxnumberinput.js}"></script>
+<script type="text/javascript" th:src="@{/js/jqwidgets/jqxcheckbox.js}"></script>
+<!-- <script type="text/javascript" th:src="@{/js/bootstrap/js/bootstrap.js}"></script> -->
 
-<script type="text/javascript" th:src="@{/js/bootstrap/js/bootstrap.js}"></script>
+<script type="text/javascript" th:src="@{/js/moment-with-locales.js}"></script>
+<script type="text/javascript" th:src="@{/js/moment-duration-format.js}"></script>
 
 <script type="text/javascript" th:src="@{/js/d3/d3.js}"></script>
+<script type="text/javascript" th:src="@{/js/d3/d3.tip.v0.6.3.js}"></script>
 <script type="text/javascript" th:src="@{/js/dagre/dagre-d3.js}"></script>
 
+<script type="text/javascript" th:src="@{/js/dke/pm-tool.js}"></script>
+<script type="text/javascript" th:src="@{/js/dke/application.js}"></script>
 
 <link rel="stylesheet" th:href="@{/css/graph.css}" type="text/css" />
 
 <style type="text/css">
+
+* {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;    
+}
+
 html, body {
 	height: 100%;
 	width: 100%;
@@ -41,10 +55,161 @@ html, body {
 	padding: 0px;
 	overflow: hidden;
 }
+
+//processes
+
+//#svg-processes 
+.barXX {
+	fill: red;
+	stroke: green;
+}
+
+#svg-processes rect.bar {
+  fill: #aaa;
+}
+
+#svg-processes rect.dke-selected {
+	stroke: #000;
+	shape-rendering: crispEdges;
+}
+
+#svg-processes rect.bar:hover {
+  fill: red;
+}
+
+#svg-events rect.bar {
+  fill: #aaa;
+}
+
+.bar:hover {
+	fill: brown;
+}
+
+.axis {
+	font: 10px sans-serif;
+}
+
+.axis path, .axis line {
+	fill: none;
+	stroke: #000;
+	shape-rendering: crispEdges;
+}
+
+/*.x.axis path {
+	display: none;
+}*/
+
+//
+tooltip
+.d3-tip {
+	line-height: 1;
+	font-weight: bold;
+	padding: 12px;
+	background: rgba(0, 0, 0, 0.8);
+	color: #fff;
+	border-radius: 2px;
+}
+
+/* Creates a small triangle extender for the tooltip */
+.d3-tip:after {
+	box-sizing: border-box;
+	display: inline;
+	font-size: 10px;
+	width: 100%;
+	line-height: 1;
+	color: rgba(0, 0, 0, 0.8);
+	content: "\25BC";
+	position: absolute;
+	text-align: center;
+}
+
+/* Style northward tooltips differently */
+.d3-tip.n:after {
+	margin: -1px 0 0 0;
+	top: 100%;
+	left: 0;
+}
+
+.arrowhead {
+}
+//bootstrap
+.dke-container-fluid {
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.dke-row {
+  padding-top: 15px;
+  min-height: 27px;
+  /* padding-bottom: 15px; */
+  position: relative;
+}
+.dke-row:after {
+    clear: both;
+}
+.dke-container-fluid:before,
+.dke-container-fluid:after,
+.dke-row:before, .dke-row:after
+ {
+    display: table;
+    content: " ";
+}
+
+.dke-form {
+	float: left;
+	position: relative;
+	width: 75%;
+}
+.dke-label {
+	float:left; 
+	line-height: 27px; 
+	position: relative; 
+	min-height: 1px; 
+	padding-right: 15px; 
+	padding-left: 15px; 
+	width: 150px; 
+	vertical-align: middle;
+
+}
+
+table {
+    -moz-user-select: none;
+}
+
+.dke-properties,
+.dke-properties tr ,
+.dke-properties td {
+	/* border: 1px solid blue; */
+}
+
+.dke-properties td {
+	padding-bottom: 1em;
+	padding-right: 1em;
+	white-space: nowrap;
+}
+
+svg.chart {
+	width: 90%;
+	height:200px;
+	margin-left: 5%;
+	border: 1px solid #C7C7C7;
+	border-radius: 3px;	
+}
 </style>
 <script type="text/javascript" th:inline="javascript">
 	/*<![CDATA[*/
 	$(document).ready(function() {
+
+		this.consoleLogging = console.log;
+		
+		//DKE
+		var application = new dke.Application();
+		application.on(null, function(event){ console.log('any consume', event, this); }, this);
+		
+		var graphPanel = new GraphPanel(application)
+
 		// Create jqxPanel
 		console.log("foo2");
 		var layout = [ {
@@ -52,34 +217,130 @@ html, body {
 			orientation : 'horizontal',
 			items : [ {
 				type : 'documentGroup',
-				width : '80%',
-				minWidth : '300',
+				width : '50%',
+				minWidth : '500',
 				items : [ {
 					type : 'documentPanel',
 					title : 'Graph',
-					contentContainer : 'GraphPanel'
+					contentContainer : 'GraphPanel',
+					selected : true,
+					initContent: function () {
+						//graph
+						// Set up an SVG group so that we can translate the final graph.
+ 						var svg = d3.select("#svg-canvas");
+						var svgGroup = svg.append("g");
+
+						// Set up zoom support
+						var zoom = d3.behavior.zoom().on("zoom", function() {
+						    svgGroup.attr("transform", "translate(" + d3.event.translate + ")" +
+						                                "scale(" + d3.event.scale + ")");
+						  });
+						svg.call(zoom);
+						
+						graphPanel.zoom(zoom);
+
+						$("#jqxCenterButton").jqxButton({ width: 80, height: 40 /*, imgSrc: [[@{/js/jqwidgets/styles/images/crosshair.png}]]*/ });
+						$("#jqxCenterButton").on('click', function () {
+							graphPanel.center();
+/* 							var output = $("#svg-canvas g .output");
+							if (output.length == 0)
+								return;
+							var box = output[0].getBBox();
+							var xCenterOffset = (svg.attr("width") - box.width) / 2;
+
+							svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
+							//svg.attr("height", box.height + 40);
+ */						});
+					}
 				}, {
 					type : 'documentPanel',
 					title : 'List',
-					contentContainer : 'ListPanel',
-					selected : true
+					contentContainer : 'ListPanel'
 				} ]
 
 			}, {
 				type : 'tabbedGroup',
-				width : '20%',
-				minWidth : '200',
+				width : '50%',
+				minWidth : '400',
 				allowClose : false,
 				allowPin : false,
 				items : [ {
 					type : 'layoutPanel',
-					title : 'Properties',
-					contentContainer : 'PropertiesPanel'
+					title : 'Prozessdaten',
+					contentContainer : 'PropertiesPanel',
+					initContent: function () {
+						$("#jqxNumericInput").jqxNumberInput({ width: '70px', height: '25px', min: 0, max: 100, decimalDigits: 0, digits: 3 });
+						$("#jqxNumericInput").on('keypress', function (event){
+							console.log("key pressed", event.which, event.keyKode);
+							if (event.which == 13) {
+								var val = $("#jqxNumericInput").val();
+								val = Math.min(val,  $("#jqxNumericInput").jqxNumberInput('max'));
+								val = Math.max(val,  $("#jqxNumericInput").jqxNumberInput('min'));
+								$("#jqxNumericInput").val(val);
+								
+								//Coverage Filter
+								var coverage = new dke.filter.Coverage(val);
+								application.selectModels(coverage.filter);
+
+							}
+						});
+						$("#jqxCheckBoxEdge").jqxCheckBox({ width: '300px', hasThreeStates: true, checked: false});
+						$("#jqxCheckBoxNode").jqxCheckBox({ width: '200px', checked: false});
+						graphPanel.setEdgeLabelRenderer( $("#jqxCheckBoxEdge").jqxCheckBox().val() );
+			            $("#jqxCheckBoxNode").on('change', function (event) {			            	
+			                var checked = event.args.checked;
+			                console.log("nodeChecked", checked);
+			                if (checked) {
+			                    $("#jqxCheckBoxNode").find('span')[1].innerHTML = 'Node: Name';
+			                }
+			                else if (false == checked) {
+			                    $("#jqxCheckBoxNode").find('span')[1].innerHTML = 'Node: ID';
+			                }
+			                graphPanel.setNodeLabelRenderer(checked);
+			            });
+			            $("#jqxCheckBoxEdge").on('change', function (event) {			            	
+			                var checked = event.args.checked;
+			                console.log("edgeChecked", checked);
+			                if (checked) {
+			                    $("#jqxCheckBoxEdge").find('span')[1].innerHTML = 'Edge: Durchlaufzeit';
+			                }
+			                else if (false == checked) {
+			                    $("#jqxCheckBoxEdge").find('span')[1].innerHTML = 'Edge: Anzahl';
+			                }
+			                else {
+			                    $("#jqxCheckBoxEdge").find('span')[1].innerHTML = 'Edge: Anzahl + Durchlaufzeit';
+			                }
+			                graphPanel.setEdgeLabelRenderer(checked);
+			            });
+						var source =
+			            {
+				                localdata: [],
+				                datatype: "local",
+				                id: 'id'			            
+				        };
+						var dataAdapter = new $.jqx.dataAdapter(source);
+						$("#jqxComboBoxVariante").jqxComboBox({source: dataAdapter, multiSelect: true, searchMode: 'containsignorecase', dropDownVerticalAlignment: 'bottom', height: 25, width: '100%', valueMember: 'footprint', displayMember: 'footprint', placeHolder: "Enter Process Variant ID"});
+						$('#jqxComboBoxVariante').on('change', function (event){
+							console.log("Comboselect", this, event.args.type, event);
+							application.selectModels( $(this).jqxComboBox('getSelectedItems').map(function(item){ return item.value; }) );
+						});
+						
+						$("#jqxCheckBoxLogging").jqxCheckBox({ checked: true });
+			            $("#jqxCheckBoxLogging").on('change', function (event) {			            	
+			                var checked = event.args.checked;
+			                console.log("loggingChecked", checked);
+			                if (checked) {
+			                    console.log = this.consoleLogging;
+			                } else {
+			                	console.log = function() {};
+			                }
+			            });
+					}
 				} ]
 			} ]
 		} ];
 
-		$('#jqxLayout').jqxDockingLayout({
+		$('#jqxLayout').jqxLayout({
 			width : '100%',
 			height : '100%',
 			layout : layout
@@ -106,48 +367,171 @@ html, body {
 			height : 25
 		});
 		$("#jqxLoadProcessButton").jqxButton({ width: 75, height: 27 });
+		$("#jqxLoadProcessButton").on('click', function ()
+	            {
+					var id = $("#jqxProcessDropdown").jqxComboBox('getSelectedItem');
+					
+					if (id != null) {
+						id = id.value;
+						console.log('url:', [[@{/api/}]]+id);
+						$.get( [[@{/api/}]]+id, function( data ) {
+							  console.log('process', data);
+							  application.init(data);
+							});
+					}
+					console.log('Button Clicked', id);
+	            });
+
+		var processChart = new ProcessChart(application);
+		var eventChart = new EventChart(application);
+
+		//$("#jqxNumericInput").jqxNumberInput({ width: '70px', height: '25px' });
+		application.on(dke.Event.INIT, function(event){ 
+			console.log('init_data', event, arguments);
+			var data = event.getSource().getModels();
+			
+			console.log(this);
+			processChart.setData(data);
+			
+			eventChart.init(event.getSource().getEventTypes());
+			
+			var source =
+            {
+                localdata: data,
+                datatype: "local",
+                id: 'id'
+            };
+			var dataAdapter = new $.jqx.dataAdapter(source);
+			
+			
+			$("#jqxComboBoxVariante").jqxComboBox({source: dataAdapter});
+		}, processChart);	
+		
+		application.on(dke.Event.SELECTION_UPDATE, function(event){ 
+			console.log('update_graph');
+			var footprints = event.getSource().getMergedModel().footprints;
+			var pn = event.getSource().getMergedModel().processNet;
+			//var graph = dke.ModelUtils.createGraph(pn, new dke.format.DagreNode(), new dke.format.DagreEdgeAll()); //TODO functions
+			
+			//graph.setDefaultEdgeLabel(function() { return {}; });
+			//graphPanel.setGraph(graph);
+			graphPanel.setModel(pn);
+			//render(d3.select("#svg-canvas g"), graph);
+			
+			//process chart selection
+			var encodedFootprints = {};
+			footprints.forEach(function (f){
+				encodedFootprints[f] = f; 
+				//encodedFootprints[btoa(f).slice(0,-1)] = f; 
+			});
+			d3.selectAll("#svg-processes .bar").each(
+				    function(){
+				        var elt = d3.select(this);
+				        elt.classed('dke-selected', (encodedFootprints[elt.data()[0].footprint]||0) != 0);
+				    }
+				) 
+
+			
+			//eventChart.setData([]);
+			eventChart.setData(pn.nodes);
+
+			var p = Math.round(event.getSource().getMergedModel().noCases * 100 / event.getSource()._processData.totalCases); 
+	
+			console.log("prozent", event.getSource()._processData.totalCases, event.getSource().getMergedModel().noCases, p);
+			$("#jqxNumericInput").val(p);
+			
+			$("#jqxComboBoxVariante").jqxComboBox('clearSelection');			
+			footprints.forEach(function(element){
+				$("#jqxComboBoxVariante").jqxComboBox('selectItem', element);				
+			});
+			
+		}, this);	
+
 	});
+
+
+	
 	/*]]>*/
 </script>
 
 <title>PM Web Applikation</title>
 </head>
 <body style="min-width: 1000px">
-
-	<div class="header-wrap container-fluid" style="height: 60px">
-		<div class="row-fluid" style="">
-			<div class="col-md-4" style="">
-				<p>
-					<span class="glyphicon glyphicon-bookmark"></span>Sales Report
-				</p>
+	<div class="dke-container-fluid" style="height: 60px;">
+ 			<div style="float:left; position: relative; min-height: 1px; padding-right: 15px; padding-left: 15px;">
+				 <img th:src="@{/img/jku.png}" alt="JKU DKE 2016" height="60" /> 
 			</div>
-			<div class="col-md-2"></div>
-			<!--  			<div class="col-md-4">
- 				<div id='jqxProcessDropdown' style="margin-top: 1.2em;"></div>
+ 			<div style="float:left; line-height: 60px; position: relative; min-height: 1px; padding-right: 15px; padding-left: 15px; width: 200px; height: 100%">
+					<span style="font-size: 27px; white-space: nowrap">DKE Process Mining 2016</span>
+			</div>
+ 		<div style="float:right; position: relative; min-height: 1px; padding-right: 10%; padding-left: 15px;">
  				<input type="button" value="Fetch" id='jqxLoadProcessButton' style="margin-top: 1.2em;" />
- 			</div> -->
-			<!-- <div class="col-md-2"><input type="button" value="Fetch" id='jqxLoadProcessButton' style="margin-top: 1.2em;" /></div> -->
-			<div class="col-md-5 text-center">
-				<ul class="list-inline" style="margin-top: 1.2em;">
-					<li><div id='jqxProcessDropdown'></div></li>
-					<li><input type="button" value="Fetch" id='jqxLoadProcessButton' style="margin-top: 1.2em;"/></li>
-				</ul>
-			</div>
-
-
-			<div class="col-md-1"></div>
+		</div>
+ 		<div style="float:right; position: relative; min-height: 1px; padding-right: 15px; padding-left: 15px;">
+ 				<div id='jqxProcessDropdown' style="margin-top: 1.2em;"></div>
 		</div>
 	</div>
-
-	<div class="container-fluid" style="height: 100%; padding-right: 0; padding-left: 0; margin-top: -60px; padding-top: 60px;">
+ 
+	<div class="dke-container-fluid" style="height: 100%; padding-right: 0; padding-left: 0; margin-top: -60px; padding-top: 60px;">
 		<div id="jqxLayout">
 			<!--The panel content divs can have a flat structure-->
 			<!-- documentGroup -->
 			<div data-container="GraphPanel" style="overflow: hidden">
-				<svg id="svg-canvas" width="99%" height="99%"></svg>
+				<svg id="svg-canvas" width="99%" height="99%" ></svg>
+				<input style='position: absolute; top: 40px; right: 15px;' type="button" id='jqxCenterButton' value='Center'/>
 			</div>
 			<div data-container="ListPanel">List Data</div>
-			<div data-container="PropertiesPanel">Propertiespanel</div>
+			<div data-container="PropertiesPanel">
+				<div  class="dke-container-fluid" style="width: 100%">
+				<table class="dke-properties" style="margin: 15px;">
+					<!-- Abdeckung -->
+					<tr>
+						<td>Abdeckung %</td>
+						<td><div id="jqxNumericInput"></div></td>
+					</tr>
+					<!-- Kantentext -->	
+					<tr>
+						<td>Label</td>
+						<td>
+							<div id='jqxCheckBoxEdge' style="float: left;" ><span>Edge: Anzahl</span></div>
+							<div id='jqxCheckBoxNode' style="float: left;" ><span>Node: ID</span></div>
+						</td>						
+					</tr>
+					<!-- ProcessChart -->
+					<tr>
+						<td colspan="2">
+							<div style="padding-bottom: 0.5em;">Prozessvarianten</div>
+							<div id="processes-chart" class="chart col-md-12">
+								<svg id="svg-processes" class="chart"></svg>
+							</div>						
+						</td>
+					</tr>
+					<!-- EventChart -->				
+					<tr>
+						<td colspan="2">
+							<div style="padding-bottom: 0.5em;">Events</div>
+							<div id="event-chart" class="chart col-md-12">					
+								<svg id="svg-events" class="chart"></svg>
+							</div>					
+						</td>
+					</tr>
+					<!-- Variante -->				
+					<tr>
+						<td>Variante</td>
+						<td>
+							<div id='jqxComboBoxVariante'></div>
+						</td>						
+					</tr>
+					<!-- Kantentext -->	
+					<tr>
+						<td>Logging</td>
+						<td>
+							<div id='jqxCheckBoxLogging'><span>Console logging</span></div>
+						</td>						
+					</tr>
+				</table>
+				</div>			
+			</div>
 		</div>
 	</div>
 </body>

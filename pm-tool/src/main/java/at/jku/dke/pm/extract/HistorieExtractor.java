@@ -16,7 +16,7 @@ import at.jku.dke.pm.domain.Events;
 //TODO: auf bekannte Felder einschränken
 public class HistorieExtractor implements EventExtractor {
 
-	public final String SOURCE_ID = "HistorieExtractor";
+	public static final String SOURCE_ID = "HistorieExtractor";
 
 	protected final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
@@ -54,7 +54,7 @@ public class HistorieExtractor implements EventExtractor {
 			e = new Event();
 
 			e.setSource(SOURCE_ID);
-			e.setType(Events.BESTELLPOSITION_STORNIERT);
+			e.setType(Events.BESTELLUNG_STORNIERT);
 			e.setEventTs(LocalDateTime.parse((String) log.get("AENDERTS"), formatter));
 
 			e.addAttribute(EventAttributes.ID_USER, log.get("AENDERUSR"));

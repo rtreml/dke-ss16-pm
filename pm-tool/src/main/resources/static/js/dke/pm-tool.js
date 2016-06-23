@@ -14,6 +14,8 @@ dke.Application = function() {
 	// modelselection
 	this._selection = [];
 	this._mergedModel = null;
+
+	this.selectionInProgress = false;
 }
 
 dke.Application.prototype = {
@@ -51,29 +53,39 @@ dke.Application.prototype = {
 		return this._processData.eventTypes;
 	},
 
+	getModels : function() {
+		return this._processData.models;
+	},
+
 	getMergedModel : function() {
 		return this._mergedModel;
 	},
 
 	selectModels : function() {
 		console.log("arguments", arguments.length, arguments);
-		
-		//keine Daten vorhanden
+
+		if (this.selectionInProgress)
+			return;
+		this.selectionInProgress = true;
+
+		// keine Daten vorhanden
 		if (!this._processData) {
 			return -1;
 		}
-		
+
 		var models = [];
 		if (typeof arguments[0] === 'function') {
 			var fn = arguments[0];
-			var thisArg = arguments.length >= 2 ? arguments[1] : void 0;
+			var thisArg = arguments.length >= 2 ? arguments[1] : fn; // void
+			// 0;
 			var data = this._processData;
-			//filterfunction (element, index, array)
-			models =  this._processData.models.filter(function(element, index, array){
+			// filterfunction (element, index, array)
+			models = this._processData.models.filter(function(element, index,
+					array) {
 				return fn.call(thisArg, element, index, array, data);
 			});
 		} else {
-			//ids, footprints wurden übergeben
+			// ids, footprints wurden übergeben
 			var mIds = [];
 			for (var i = 0; i < arguments.length; i++) {
 				if (Array.isArray(arguments[i])) {
@@ -112,6 +124,9 @@ dke.Application.prototype = {
 			this._fire(dke.Event.SELECTION_UPDATE, new dke.Event(
 					dke.Event.SELECTION_UPDATE, this));
 		}
+
+		this.selectionInProgress = false;
+
 		return models.length;
 	},
 
@@ -224,7 +239,7 @@ dke.ModelUtils = {
 	merge : function(models) {
 
 		console.time("merger");
-		
+
 		if (models == null)
 			return null;
 
@@ -242,6 +257,24 @@ dke.ModelUtils = {
 		var netIds = [];
 		var netNodes = {};
 		var netEdges = {};
+
+		// sortieren
+		mArr.sort(function(b, a) {
+			var cnt = a.noCases - b.noCases;
+
+			if (cnt != 0) {
+				return cnt;
+			} else {
+				if (a.footprint < b.footprint) {
+					return -1;
+				}
+				if (a.footprint > b.footprint) {
+					return 1;
+				}
+
+			}
+			return 0;
+		});
 
 		mArr.forEach(function(e) {
 			console.group(e.footprint);
@@ -267,7 +300,9 @@ dke.ModelUtils = {
 					if (!tmp) {
 						tmp = netNodes[n.id] = {
 							id : n.id,
-							data : {}
+							data : {
+								_classes : []
+							}
 						};
 					}
 					console.log(e.footprint, 'node', n.id, n.data, tmp.data);
@@ -275,12 +310,13 @@ dke.ModelUtils = {
 						// key: the name of the object key
 						// index: the ordinal position of the key within the
 						console.log("prop", key, n.data[key]);
-						if (key == 'count') {
+						if (key.startsWith('count')) {
 							tmp.data[key] = n.data[key] + (tmp.data[key] || 0);
 						} else {
 							tmp.data[key] = n.data[key];
 						}
 					});
+					tmp.data._classes.push(dke.util.fpCss(e.footprint));
 					console.log(' tmp', tmp.id, tmp.data);
 
 				});
@@ -292,7 +328,9 @@ dke.ModelUtils = {
 						tmp = netEdges[id] = {
 							source : n.source,
 							target : n.target,
-							data : {}
+							data : {
+								_classes : []
+							}
 						};
 					}
 					console.log('edge', id, n.data);
@@ -302,7 +340,7 @@ dke.ModelUtils = {
 								// index: the ordinal position of the key within
 								// the
 								console.log("prop", key, n.data[key]);
-								if (key == 'count') {
+								if (key.startsWith('count')) {
 									tmp.data[key] = n.data[key]
 											+ (tmp.data[key] || 0);
 								} else if (key == 'duration') {
@@ -315,6 +353,7 @@ dke.ModelUtils = {
 									tmp.data[key] = n.data[key];
 								}
 							});
+					tmp.data._classes.push(dke.util.fpCss(e.footprint));
 					console.log(' tmp', tmp.id, tmp.data);
 
 				});
@@ -338,31 +377,38 @@ dke.ModelUtils = {
 		};
 		Object.keys(netNodes).forEach(function(key, idx) {
 			console.log('copy Node', key, idx, netNodes[key].data);
+			netNodes[key].data.class = netNodes[key].data._classes.join(' ');
 			target.processNet.nodes.push(netNodes[key]);
 		});
-		Object.keys(netEdges).forEach(
-				function(key, idx) {
-					console.log('copy Edge', key, idx, netEdges[key].data);
-					var tmp = netEdges[key];
-					if (tmp.data.duration) {
-						//duration auf m genau ...
-						tmp.data.duration = moment.duration(Math.trunc((tmp.data.duration
-								/ tmp.data.count) / 60000)*60000);
-					}
-					target.processNet.edges.push(tmp);
-				});
+		Object
+				.keys(netEdges)
+				.forEach(
+						function(key, idx) {
+							console.log('copy Edge', key, idx,
+									netEdges[key].data);
+							var tmp = netEdges[key];
+							if (tmp.data.duration) {
+								// duration auf m genau ...
+								tmp.data.duration = moment
+										.duration(Math
+												.trunc((tmp.data.duration / tmp.data.count) / 60000) * 60000);
+							}
+							netEdges[key].data.class = netEdges[key].data._classes
+									.join(' ');
+							target.processNet.edges.push(tmp);
+						});
 
 		// TODO: muss der graph update event handler machen
 		// target.graph = dke.ModelUtils.createGraph(target.processNet);
 		console.log('target', target);
 
 		console.timeEnd("merger");
-		
+
 		return target;
 	},
 
 	// TODO: metadaten includieren, erst auf summierte daten ausführen
-	createGraph : function(json) {
+	createGraph : function(json, nodeFn, edgeFn) {
 		// dagre implementierung
 		var g = new dagreD3.graphlib.Graph({
 			"directed" : true,
@@ -370,16 +416,55 @@ dke.ModelUtils = {
 			"compound" : false
 		}).setGraph({});
 		json.nodes.forEach(function(n) {
-			if (n.data.count) {
-				n.data.label += ' ' + n.data.count;
-			}
+			// if (n.data.count) {
+			// n.data.label += ' ' + n.data.count;
+			// }
+			// if (n.data.countPass) {
+			// n.data.label += ' (' + n.data.countPass + ')';
+			// }
+
+//			for ( var prop in nodeFn) {
+//				n.data[prop] = nodeFn[prop].call(nodeFn, n);
+//			}
+			Object.keys(nodeFn).forEach(function(prop) {
+				if (typeof nodeFn[prop] !== 'function') return;
+				
+				if (prop.startsWith('_')) {
+					nodeFn[prop].call(nodeFn, n);
+				} else {
+					n.data[prop] = nodeFn[prop].call(nodeFn, n);
+				}
+			});
 			g.setNode(n.id, n.data);
 		});
+
+		// edge width
+		var scale = d3.scale.sqrt().range([ 1, 6 ]).domain(
+				[ 1, d3.max(json.edges, function(d) {
+					return d.data.count;
+				}) ]);
+
 		json.edges.forEach(function(e) {
-			e.data.label += ' ' + e.data.count;
-			if (e.data.duration) {
-				e.data.label += ' ' + e.data.duration.toISOString();
-			}
+			// e.data.label += ' ' + e.data.count;
+			// if (e.data.duration) {
+			// e.data.label += ' ' + e.data.duration.toISOString();
+			// }
+			e.data.style = (e.data.style || '') + 'fill: none; stroke-width: '
+					+ scale(e.data.count) + 'px;';
+			e.data.arrowheadClass = 'arrowhead';
+
+			Object.keys(edgeFn).forEach(function(prop) {
+				if (typeof edgeFn[prop] !== 'function') return;
+				
+				if (prop.startsWith('_')) {
+					edgeFn[prop].call(edgeFn, e);
+				} else {
+					e.data[prop] = edgeFn[prop].call(edgeFn, e);
+				}
+			});
+
+			console.log('stroke', e.data.style);
+
 			g.setEdge(e.source, e.target, e.data);
 		});
 		return g;
@@ -404,4 +489,166 @@ dke.Model = function(json) {
 
 dke.Model.prototype.foo = function() {
 	console.log("I'm FOO");
+}
+
+// filter for Model selection
+dke.filter = dke.filter || {};
+
+dke.filter.Coverage = function(val) {
+
+	this.filter = function(element, index, array, data) {
+		if (index == 0) {
+			this.act = 0;
+			this.cnt = data.totalCases * val / 100;
+		}
+
+		var check = (this.act || 0) < this.cnt;
+
+		this.act = element.noCases + (this.act || 0);
+
+		console.log("Filter::Coverage", check, this.act, this.cnt, element);
+
+		return check;
+	}
+}
+
+// format for Model selection
+dke.format = dke.format || {};
+
+dke.format.util = dke.format.util || {};
+
+dke.format.util._width = function(edge) {
+	if (edge.data)
+		delete edge.data['width'];
+}
+
+// dke.format.DagreUtil.prototype = {
+// _width = function(edge) {
+// if (edge.data)
+// delete edge.data['width'];
+// }
+// }
+
+dke.format.DagreNode = function() {
+
+	this.label = function(node) {
+		node.data = node.data || {};
+		// alte property speichern
+		if (node.data.label && !node.data._label)
+			node.data._label = node.data.label;
+
+		var label = node.data._label || '';
+
+		if (node.data.count) {
+			label += ' ' + node.data.count;
+		}
+		if (node.data.countPass) {
+			label += ' (' + node.data.countPass + ')';
+		}
+
+		console.log("Format::DagreNode", node, label);
+
+		return label;
+	}
+}
+
+dke.format.DagreNodeLong = function(eventTypes) {
+
+	this.eventTypes = {};
+	eventTypes.forEach(function(obj, idx) {
+		this.eventTypes[obj.id] = obj;
+	}, this);
+
+	this.label = function(node) {
+		node.data = node.data || {};
+		// alte property speichern
+		if (node.data.label && !node.data._label)
+			node.data._label = node.data.label;
+
+		var label = node.data._label || '';
+		if (this.eventTypes[node.id]) {
+			label = this.eventTypes[node.id].name;
+		}
+
+		if (node.data.count) {
+			label += ' ' + node.data.count;
+		}
+		if (node.data.countPass) {
+			label += ' (' + node.data.countPass + ')';
+		}
+
+		console.log("Format::DagreNodeLong", node, label);
+
+		return label;
+	}
+}
+
+dke.format.DagreEdgeAll = function() {
+
+	this.label = function(edge) {
+		edge.data = edge.data || {};
+		// alte property speichern
+		if (edge.data.label && !edge.data._label)
+			edge.data._label = edge.data.label;
+
+		var label = edge.data._label || '';
+
+		label += ' ' + edge.data.count;
+		if (edge.data.duration) {
+			label += ', ' + edge.data.duration.format('d[D] h[H] m[M]');
+		}
+
+		console.log("Format::DagreEdgeAll", edge, label);
+
+		return label;
+	}
+
+	this._width = dke.format.util._width;
+}
+
+dke.format.DagreEdgeCount = function() {
+
+	this.label = function(edge) {
+		edge.data = edge.data || {};
+		if (edge.data.label && !edge.data._label)
+			edge.data._label = edge.data.label;
+
+		var label = edge.data._label || '';
+
+		label += ' ' + edge.data.count;
+
+		console.log("Format::DagreEdgeCount", edge, label);
+
+		return label;
+	}
+
+	this._width = dke.format.util._width;
+}
+
+dke.format.DagreEdgeTime = function() {
+
+	this.label = function(edge) {
+		edge.data = edge.data || {};
+		if (edge.data.label && !edge.data._label)
+			edge.data._label = edge.data.label;
+
+		var label = edge.data._label || '';
+
+		if (edge.data.duration) {
+			// label += ' ' + edge.data.duration.format('d[D] h[H] m[M]');
+			label = edge.data.duration.format('d[D] h[H] m[M]');
+		}
+
+		console.log("Format::DagreEdgeCount", edge, label);
+
+		return label;
+	}
+
+	this._width = dke.format.util._width;
+}
+
+dke.util = dke.util || {};
+
+dke.util.fpCss = function(footprint) {
+	return 'dke_fp_' + btoa(footprint).replace(/=+$/, "");
 }
