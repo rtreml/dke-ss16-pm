@@ -26,6 +26,8 @@
 <script type="text/javascript" th:src="@{/js/jqwidgets/jqxcombobox.js}"></script>
 <script type="text/javascript" th:src="@{/js/jqwidgets/jqxnumberinput.js}"></script>
 <script type="text/javascript" th:src="@{/js/jqwidgets/jqxcheckbox.js}"></script>
+<script type="text/javascript" th:src="@{/js/jqwidgets/jqxgrid.js}"></script>
+<script type="text/javascript" th:src="@{/js/jqwidgets/jqxgrid.selection.js}"></script>
 <!-- <script type="text/javascript" th:src="@{/js/bootstrap/js/bootstrap.js}"></script> -->
 
 <script type="text/javascript" th:src="@{/js/moment-with-locales.js}"></script>
@@ -69,8 +71,9 @@ html, body {
 }
 
 #svg-processes rect.dke-selected {
-	stroke: #000;
-	shape-rendering: crispEdges;
+	fill: steelblue;
+	/*stroke: #000;
+	shape-rendering: crispEdges;*/
 }
 
 #svg-processes rect.bar:hover {
@@ -99,15 +102,15 @@ html, body {
 	display: none;
 }*/
 
-//
-tooltip
+
+/*tooltip*/
 .d3-tip {
 	line-height: 1;
 	font-weight: bold;
 	padding: 12px;
 	background: rgba(0, 0, 0, 0.8);
 	color: #fff;
-	border-radius: 2px;
+	border-radius: 3px;
 }
 
 /* Creates a small triangle extender for the tooltip */
@@ -242,21 +245,43 @@ svg.chart {
 						$("#jqxCenterButton").jqxButton({ width: 80, height: 40 /*, imgSrc: [[@{/js/jqwidgets/styles/images/crosshair.png}]]*/ });
 						$("#jqxCenterButton").on('click', function () {
 							graphPanel.center();
-/* 							var output = $("#svg-canvas g .output");
-							if (output.length == 0)
-								return;
-							var box = output[0].getBBox();
-							var xCenterOffset = (svg.attr("width") - box.width) / 2;
-
-							svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
-							//svg.attr("height", box.height + 40);
- */						});
+						});
 					}
-				}, {
+				}/*, {
 					type : 'documentPanel',
 					title : 'List',
-					contentContainer : 'ListPanel'
-				} ]
+					contentContainer : 'ListPanel',
+					initContent: function() {
+						var source =
+			            {
+			                dataType: "array",
+			                dataFields: [
+			                    { name: "footprint", type: "string" },
+			                    { name: "noCases", type: "number" },
+			                    { name: "minDuration", type: "string" },
+			                    { name: "maxDuration", type: "string" },
+			                    { name: "avgDuration", type: "string" }
+			                ],
+			                id: 'footprint',
+			                localData:application.getSelectedModels()
+			            };
+						console.log("initList", application.getSelectedModels());
+			            var dataAdapter = new $.jqx.dataAdapter(source);
+			            $("#jqxGrid").jqxGrid(
+			                    {
+			                        width: '100%',
+			                        source: dataAdapter,
+			                        //columnsresize: true,
+			                        columns: [
+			                          { text: 'Footprint', datafield: 'footprint', width: 120 },
+			                          { text: 'noCases', datafield: 'noCases', cellsalign: 'right', cellsformat: 'c2' },
+			                          { text: 'minDuration', datafield: 'minDuration', width: 120 },
+			                          { text: 'maxDuration', datafield: 'maxDuration', width: 120 },
+			                          { text: 'avgDuration', datafield: 'avgDuration', width: 120 }			                          
+			                        ]
+			                    });
+					}
+				}*/ ]
 
 			}, {
 				type : 'tabbedGroup',
@@ -283,6 +308,10 @@ svg.chart {
 								application.selectModels(coverage.filter);
 
 							}
+						});
+						$("#jqxResetButton").jqxButton({ width: 80, height: 25 });
+						$("#jqxResetButton").on('click', function () {
+							application.selectModels(0);
 						});
 						$("#jqxCheckBoxEdge").jqxCheckBox({ width: '300px', hasThreeStates: true, checked: false});
 						$("#jqxCheckBoxNode").jqxCheckBox({ width: '200px', checked: false});
@@ -316,7 +345,7 @@ svg.chart {
 			            {
 				                localdata: [],
 				                datatype: "local",
-				                id: 'id'			            
+				                id: 'footprint'			            
 				        };
 						var dataAdapter = new $.jqx.dataAdapter(source);
 						$("#jqxComboBoxVariante").jqxComboBox({source: dataAdapter, multiSelect: true, searchMode: 'containsignorecase', dropDownVerticalAlignment: 'bottom', height: 25, width: '100%', valueMember: 'footprint', displayMember: 'footprint', placeHolder: "Enter Process Variant ID"});
@@ -480,14 +509,22 @@ svg.chart {
 				<svg id="svg-canvas" width="99%" height="99%" ></svg>
 				<input style='position: absolute; top: 40px; right: 15px;' type="button" id='jqxCenterButton' value='Center'/>
 			</div>
-			<div data-container="ListPanel">List Data</div>
+			<div data-container="ListPanel">
+				<div  class="dke-container-fluid" style="width: 100%">
+					<div id="jqxGrid"></div>
+				</div>
+			</div>
+			<!-- Properties Panel -->
 			<div data-container="PropertiesPanel">
 				<div  class="dke-container-fluid" style="width: 100%">
 				<table class="dke-properties" style="margin: 15px;">
 					<!-- Abdeckung -->
 					<tr>
 						<td>Abdeckung %</td>
-						<td><div id="jqxNumericInput"></div></td>
+						<td>
+							<div id="jqxNumericInput" style='float: left'></div>
+							<input style='float: right' type="button" id='jqxResetButton' value='Reset'/>
+						</td>
 					</tr>
 					<!-- Kantentext -->	
 					<tr>
@@ -501,7 +538,7 @@ svg.chart {
 					<tr>
 						<td colspan="2">
 							<div style="padding-bottom: 0.5em;">Prozessvarianten</div>
-							<div id="processes-chart" class="chart col-md-12">
+							<div id="processes-chart" class="chart">
 								<svg id="svg-processes" class="chart"></svg>
 							</div>						
 						</td>
@@ -510,7 +547,7 @@ svg.chart {
 					<tr>
 						<td colspan="2">
 							<div style="padding-bottom: 0.5em;">Events</div>
-							<div id="event-chart" class="chart col-md-12">					
+							<div id="event-chart" class="chart">					
 								<svg id="svg-events" class="chart"></svg>
 							</div>					
 						</td>

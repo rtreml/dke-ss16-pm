@@ -43,8 +43,10 @@ public class JdbcEventRepository implements EventRepository {
 
 			logger.debug("Store Event: {} {}", holder.getKeys(), e);
 
-			logger.debug("      Data : {}",
-					template.batchUpdate(SQL_INSERT_EVENT_DATA, new BatchEventDataSetter(e)).length);
+			if (!e.getAttributes().isEmpty()) {
+				logger.debug("      Data : {}",
+						template.batchUpdate(SQL_INSERT_EVENT_DATA, new BatchEventDataSetter(e)).length);
+			}
 		}
 
 		return events;

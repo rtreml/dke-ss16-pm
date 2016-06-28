@@ -64,14 +64,14 @@ dke.Application.prototype = {
 	selectModels : function() {
 		console.log("arguments", arguments.length, arguments);
 
-		if (this.selectionInProgress)
-			return;
-		this.selectionInProgress = true;
-
 		// keine Daten vorhanden
 		if (!this._processData) {
 			return -1;
 		}
+
+		if (this.selectionInProgress)
+			return;
+		this.selectionInProgress = true;
 
 		var models = [];
 		if (typeof arguments[0] === 'function') {
@@ -132,6 +132,16 @@ dke.Application.prototype = {
 
 	getSelectedIds : function() {
 		return this._selection;
+	},
+
+	getSelectedModels : function () {
+		if (!this._processData || !this._processData.models)
+			return [];
+		
+		console.log("selection:", this._selection, this._processData.models);
+		return this._selection.map(function(fp) {
+			return this._processData.modelIds[fp];
+		}, this);
 	},
 
 	/*
@@ -387,7 +397,7 @@ dke.ModelUtils = {
 							console.log('copy Edge', key, idx,
 									netEdges[key].data);
 							var tmp = netEdges[key];
-							if (tmp.data.duration) {
+							if (tmp.data.hasOwnProperty('duration')) {
 								// duration auf m genau ...
 								tmp.data.duration = moment
 										.duration(Math
@@ -416,16 +426,7 @@ dke.ModelUtils = {
 			"compound" : false
 		}).setGraph({});
 		json.nodes.forEach(function(n) {
-			// if (n.data.count) {
-			// n.data.label += ' ' + n.data.count;
-			// }
-			// if (n.data.countPass) {
-			// n.data.label += ' (' + n.data.countPass + ')';
-			// }
 
-//			for ( var prop in nodeFn) {
-//				n.data[prop] = nodeFn[prop].call(nodeFn, n);
-//			}
 			Object.keys(nodeFn).forEach(function(prop) {
 				if (typeof nodeFn[prop] !== 'function') return;
 				
@@ -439,16 +440,18 @@ dke.ModelUtils = {
 		});
 
 		// edge width
-		var scale = d3.scale.sqrt().range([ 1, 6 ]).domain(
-				[ 1, d3.max(json.edges, function(d) {
+		var edgeCount = json.edges.map(function(d) {
 					return d.data.count;
-				}) ]);
+				});
+		var scale = d3.scale.sqrt().range([ 1, 6 ]).domain(
+				[ d3.min(edgeCount), d3.max(edgeCount) ]);
+//		var scale = d3.scale.sqrt().range([ 1, 6 ]).domain(
+//				[ 1, d3.max(json.edges, function(d) {
+//					return d.data.count;
+//				}) ]);
 
 		json.edges.forEach(function(e) {
-			// e.data.label += ' ' + e.data.count;
-			// if (e.data.duration) {
-			// e.data.label += ' ' + e.data.duration.toISOString();
-			// }
+
 			e.data.style = (e.data.style || '') + 'fill: none; stroke-width: '
 					+ scale(e.data.count) + 'px;';
 			e.data.arrowheadClass = 'arrowhead';

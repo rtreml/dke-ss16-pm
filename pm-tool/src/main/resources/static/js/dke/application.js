@@ -57,6 +57,7 @@ ProcessChart = function(callback) {
 		svg.selectAll("g.y.axis").call(yAxis);
 
 		var selection = svg.selectAll(".bar").data(data);
+		selection.exit().remove();
 		selection.enter().append("rect").attr("class", "bar").attr("x",
 				function(d) {
 					return x(d.footprint);
@@ -87,7 +88,7 @@ ProcessChart = function(callback) {
 							} else {
 								application.selectModels(data.footprint);
 							}
-						}).on('mouseover', tip.show).on('mouseout', tip.hide)
+						})
 				.on('mouseover', function() {
 					tip.show.apply(this, arguments);
 					var fpClass = dke.util.fpCss(d3.select(this).data()[0].footprint);
@@ -99,13 +100,18 @@ ProcessChart = function(callback) {
 					d3.selectAll('#svg-canvas .'+fpClass).classed('dke-selected',false);
 				});
 
+		selection.transition().attr("x",
+				function(d) {
+					return x(d.footprint);
+				}).attr("width", x.rangeBand()).attr("y", function(d) {
+			return y(d.noCases);
+		}).attr("height", function(d) {
+			return height - y(d.noCases);
+		});
+
 		svg.selectAll(".bar").each(function() {
 			var elt = d3.select(this);
-			// elt.classed(elt.data()[0].footprint, true);
-			// elt.classed(btoa(elt.data()[0].footprint).slice(0, -1), true);
-
 			elt.classed(dke.util.fpCss(elt.data()[0].footprint), true);
-			// btoa('04|KA|BE|PE|BF').slice(0,-1)
 		})
 	}
 
@@ -240,13 +246,6 @@ GraphPanel = function(callback, graph) {
 	// styles
 	this.nodeStyle = new dke.format.DagreNode();
 	this.edgeStyle = new dke.format.DagreEdgeAll();
-//	var style = [
-//			[ new dke.format.DagreNode(), new dke.format.DagreEdgeCount() ], // false:
-//			// count
-//			[ new dke.format.DagreNode(), new dke.format.DagreEdgeTime() ], // true:
-//			// time
-//			[ new dke.format.DagreNode(), new dke.format.DagreEdgeAll() ] ] // null:
-	// all
 
 	this.application = callback;
 

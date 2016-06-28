@@ -66,30 +66,32 @@ public class JdbcCaseRepository implements CaseRepository {
 			for (Event e : c.getEvents()) {
 				template.update(SQL_INSERT_EVENTS, e.getId(), c.getId(), e.getType(), Timestamp.valueOf(e.getEventTs()));
 
-				template.batchUpdate(SQL_INSERT_EVENT_DATA, new BatchPreparedStatementSetter() {
-					protected List<String> keys = null;
+				if (!e.getAttributes().isEmpty()) {
+					template.batchUpdate(SQL_INSERT_EVENT_DATA, new BatchPreparedStatementSetter() {
+						protected List<String> keys = null;
 
-					@Override
-					public void setValues(PreparedStatement ps, int i) throws SQLException {
+						@Override
+						public void setValues(PreparedStatement ps, int i) throws SQLException {
 
-						if (keys == null) {
-							keys = new ArrayList<String>(e.getAttributes().keySet());
+							if (keys == null) {
+								keys = new ArrayList<String>(e.getAttributes().keySet());
+							}
+
+							ps.setInt(1, e.getId());
+							ps.setInt(2, c.getId());
+
+							String key = keys.get(i);
+							ps.setString(3, key);
+							ps.setString(4, String.valueOf(e.getAttributes().get(key)));
+
 						}
 
-						ps.setInt(1, e.getId());
-						ps.setInt(2, c.getId());
-
-						String key = keys.get(i);
-						ps.setString(3, key);
-						ps.setString(4, String.valueOf(e.getAttributes().get(key)));
-
-					}
-
-					@Override
-					public int getBatchSize() {
-						return e.getAttributes().size();
+						@Override
+						public int getBatchSize() {
+							return e.getAttributes().size();
 					}
 				});
+				}
 
 			}
 		}
