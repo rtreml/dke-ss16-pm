@@ -16,7 +16,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
 import at.jku.dke.pm.collect.footprint.FootprintGenerator;
-import at.jku.dke.pm.collect.footprint.SimpleFootprintGenerator;
+import at.jku.dke.pm.collect.footprint.SumUpFootprintGenerator;
 import at.jku.dke.pm.domain.Case;
 import at.jku.dke.pm.domain.Event;
 import at.jku.dke.pm.domain.EventAttributes;
@@ -40,7 +40,7 @@ public class BestellPosCaseCollector implements CaseCollector {
 
 	protected RowMapper<Event> eventRowMapper;
 	
-	protected FootprintGenerator footprintGenerator = new SimpleFootprintGenerator();
+	protected FootprintGenerator footprintGenerator = new SumUpFootprintGenerator();
 
 	public BestellPosCaseCollector(DataSource dataSource) {
 		template = new JdbcTemplate(dataSource);
@@ -92,22 +92,27 @@ public class BestellPosCaseCollector implements CaseCollector {
 
 		// 1) alle Events zu Bestellung + POS
 		logger.debug("--< 1 >--");
-		String sql = "select e.* from RAW_EVENTS e, RAW_EVENTS_DATA best, RAW_EVENTS_DATA pos "
+		String sql = "select e.* from RAW_EVENTS_DATA best, RAW_EVENTS e, RAW_EVENTS_DATA pos "
 				+ " where e.ID = best.EVENT_ID and best.KEY = '" + EventAttributes.ID_BESTELLUNG
 				+ "' and best.VALUE = ? " + "   and e.ID = pos.EVENT_ID and pos.KEY = '"
 				+ EventAttributes.ID_BESTELL_POS + "' and pos.VALUE = ? ";
 
+//		template.queryForList("explain plan for " + sql).forEach(e -> logger.info("PLAN: {}", e));
+				
 		List<Event> tmp = template.query(sql, eventRowMapper, bestellung, bestellPos);
 		tmp.forEach(e -> logger.debug("1) OEvents: {}", e));
 		events.addAll(tmp);
 
 		// 2) alle Events zu bestellung ohne POS
 		logger.debug("--< 2 >--");
-		sql = "select e.* from RAW_EVENTS e, RAW_EVENTS_DATA best "
+		sql = "select e.* from RAW_EVENTS_DATA best, RAW_EVENTS e "
 				+ " where e.ID = best.EVENT_ID and best.KEY = '"
 				+ EventAttributes.ID_BESTELLUNG
 				+ "' and best.VALUE = ? and not exists (select null from RAW_EVENTS_DATA pos where e.ID = pos.EVENT_ID and KEY = '"
 				+ EventAttributes.ID_BESTELL_POS + "')";
+		
+//		template.queryForList("explain plan for " + sql).forEach(e -> logger.info("PLAN: {}", e));
+
 		tmp = template.query(sql, eventRowMapper, bestellung);
 		tmp.forEach(e -> logger.debug("2) OEvents: {}", e));
 		events.addAll(tmp);
@@ -141,6 +146,9 @@ public class BestellPosCaseCollector implements CaseCollector {
 			sql = "select e.* from RAW_EVENTS e, RAW_EVENTS_DATA inv "
 					+ " where e.ID = inv.EVENT_ID and EVENT_TYPE = 'ZD' " + " and inv.KEY = '"
 					+ EventAttributes.ID_RECHNUNG + "' and inv.VALUE = ? ";
+			
+//			template.queryForList("explain plan for " + sql).forEach(e -> logger.info("PLAN: {}", e));
+
 			tmp = template.query(sql, eventRowMapper, rechnung);
 			tmp.forEach(e -> logger.debug("4) Rechnung: {}", e));
 			events.addAll(tmp);

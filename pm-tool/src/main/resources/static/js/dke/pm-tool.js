@@ -419,6 +419,9 @@ dke.ModelUtils = {
 
 	// TODO: metadaten includieren, erst auf summierte daten ausführen
 	createGraph : function(json, nodeFn, edgeFn) {
+		
+		console.time("createGraph");
+
 		// dagre implementierung
 		var g = new dagreD3.graphlib.Graph({
 			"directed" : true,
@@ -470,6 +473,9 @@ dke.ModelUtils = {
 
 			g.setEdge(e.source, e.target, e.data);
 		});
+		
+		console.timeEnd("createGraph");
+
 		return g;
 	}
 }
@@ -505,11 +511,30 @@ dke.filter.Coverage = function(val) {
 			this.cnt = data.totalCases * val / 100;
 		}
 
-		var check = (this.act || 0) < this.cnt;
+		var check = (this.act || 0) <= this.cnt;
 
 		this.act = element.noCases + (this.act || 0);
 
 		console.log("Filter::Coverage", check, this.act, this.cnt, element);
+
+		return check;
+	}
+}
+
+dke.filter.InverseCoverage = function(val) {
+
+	this.filter = function(element, index, array, data) {
+		if (index == 0) {
+			this.act = 0;
+			this.cnt = data.totalCases * (100-val) / 100;
+		}
+
+
+		this.act = element.noCases + (this.act || 0);
+
+		var check = (this.act || 0) > this.cnt;
+
+		console.log("Filter::InverseCoverage", check, this.act, this.cnt, element);
 
 		return check;
 	}

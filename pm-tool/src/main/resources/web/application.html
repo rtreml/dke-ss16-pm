@@ -294,17 +294,21 @@ svg.chart {
 					title : 'Prozessdaten',
 					contentContainer : 'PropertiesPanel',
 					initContent: function () {
-						$("#jqxNumericInput").jqxNumberInput({ width: '70px', height: '25px', min: 0, max: 100, decimalDigits: 0, digits: 3 });
+						$("#jqxNumericInput").jqxNumberInput({ width: '70px', height: '25px', min: -100, max: 100, decimalDigits: 0, digits: 3 });
 						$("#jqxNumericInput").on('keypress', function (event){
 							console.log("key pressed", event.which, event.keyKode);
 							if (event.which == 13) {
 								var val = $("#jqxNumericInput").val();
+								var invers = val < 0;
+								if (invers) {
+									val = -val;
+								}
 								val = Math.min(val,  $("#jqxNumericInput").jqxNumberInput('max'));
-								val = Math.max(val,  $("#jqxNumericInput").jqxNumberInput('min'));
+								val = Math.max(val,  0);
 								$("#jqxNumericInput").val(val);
 								
-								//Coverage Filter
-								var coverage = new dke.filter.Coverage(val);
+								//Coverage Filter								
+								var coverage = invers ? new dke.filter.InverseCoverage(val) : new dke.filter.Coverage(val);
 								application.selectModels(coverage.filter);
 
 							}
@@ -315,7 +319,7 @@ svg.chart {
 						});
 						$("#jqxCheckBoxEdge").jqxCheckBox({ width: '300px', hasThreeStates: true, checked: false});
 						$("#jqxCheckBoxNode").jqxCheckBox({ width: '200px', checked: false});
-						graphPanel.setEdgeLabelRenderer( $("#jqxCheckBoxEdge").jqxCheckBox().val() );
+						graphPanel.setEdgeLabelRenderer( $("#jqxCheckBoxEdge").jqxCheckBox().val() );						
 			            $("#jqxCheckBoxNode").on('change', function (event) {			            	
 			                var checked = event.args.checked;
 			                console.log("nodeChecked", checked);
@@ -364,6 +368,7 @@ svg.chart {
 			                	console.log = function() {};
 			                }
 			            });
+						$("#jqxCheckBoxLogging").jqxCheckBox().val(false);
 					}
 				} ]
 			} ]
@@ -434,6 +439,9 @@ svg.chart {
 			
 			
 			$("#jqxComboBoxVariante").jqxComboBox({source: dataAdapter});
+			
+			//label renderer --> falls long dann erst da
+			graphPanel.setNodeLabelRenderer( $("#jqxCheckBoxNode").jqxCheckBox().val() );
 		}, processChart);	
 		
 		application.on(dke.Event.SELECTION_UPDATE, function(event){ 
@@ -447,6 +455,8 @@ svg.chart {
 			graphPanel.setModel(pn);
 			//render(d3.select("#svg-canvas g"), graph);
 			
+			console.time("CSSselected");
+			
 			//process chart selection
 			var encodedFootprints = {};
 			footprints.forEach(function (f){
@@ -458,8 +468,10 @@ svg.chart {
 				        var elt = d3.select(this);
 				        elt.classed('dke-selected', (encodedFootprints[elt.data()[0].footprint]||0) != 0);
 				    }
-				) 
+				); 
 
+
+			console.timeEnd("CSSselected");
 			
 			//eventChart.setData([]);
 			eventChart.setData(pn.nodes);
@@ -468,11 +480,18 @@ svg.chart {
 	
 			console.log("prozent", event.getSource()._processData.totalCases, event.getSource().getMergedModel().noCases, p);
 			$("#jqxNumericInput").val(p);
+
+			console.time("ComboboxSelection "+footprints.length);
 			
-			$("#jqxComboBoxVariante").jqxComboBox('clearSelection');			
-			footprints.forEach(function(element){
-				$("#jqxComboBoxVariante").jqxComboBox('selectItem', element);				
-			});
+			var comboBox = $("#jqxComboBoxVariante");
+			comboBox.jqxComboBox('clearSelection');
+			//workaround für lange laufzeiten bei multiupdates
+			if (footprints.length <= 150) {
+				footprints.forEach(function(element){
+					comboBox.jqxComboBox('selectItem', element);				
+				});
+			}
+			console.timeEnd("ComboboxSelection "+footprints.length);
 			
 		}, this);	
 
@@ -540,7 +559,7 @@ svg.chart {
 							<div style="padding-bottom: 0.5em;">Prozessvarianten</div>
 							<div id="processes-chart" class="chart">
 								<svg id="svg-processes" class="chart"></svg>
-							</div>						
+							</div>											
 						</td>
 					</tr>
 					<!-- EventChart -->				

@@ -1,9 +1,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>uni-playground</groupId>
-	<artifactId>uni-playground</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<groupId>at.jku.dke</groupId>
+	<artifactId>pm-tool</artifactId>
+	<version>1.0.1</version>
+	
+	<properties>
+		<app.mainClass>at.jku.dke.pm.PmWebApplication</app.mainClass>
+	</properties>
+	
 	<build>
 		<plugins>
 			<plugin>
@@ -15,6 +20,22 @@
 				</configuration>
 				<version>3.1</version>
 			</plugin>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<version>1.3.6.RELEASE</version>
+				<configuration>
+					<mainClass>${app.mainClass}</mainClass>
+					<layout>ZIP</layout>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>	
 		</plugins>
 	</build>
 

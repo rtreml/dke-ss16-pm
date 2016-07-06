@@ -19,7 +19,7 @@ public class CreateDB2 {
 	protected final JdbcTemplate jdbcTemplate;
 
 	public CreateDB2(File dbUrlFile) {
-		String dbUrl = String.format("jdbc:hsqldb:file:%s;hsqldb.script_format=3", dbUrlFile.getAbsolutePath());
+		String dbUrl = String.format("jdbc:hsqldb:file:%s;hsqldb.script_format=3;hsqldb.lob_compressed=true", dbUrlFile.getAbsolutePath());
 		logger.debug("URL: {}", dbUrl);
 		dataSource = DataSourceBuilder.create().driverClassName("org.hsqldb.jdbcDriver").url(dbUrl).username("SA")
 				.password("").build();
@@ -166,7 +166,9 @@ public class CreateDB2 {
 		// gruppiert wird:
 		// Key / Value
 		//jdbcTemplate.update("CREATE INDEX DKE.RAW_EVENTS_DATA_FK ON DKE.RAW_EVENTS_DATA (EVENT_ID)");
+		jdbcTemplate.update("CREATE INDEX DKE.RAW_EVENTS_DATA_EVENT ON DKE.RAW_EVENTS_DATA (EVENT_ID)");
 		jdbcTemplate.update("CREATE INDEX DKE.RAW_EVENTS_DATA_KEY ON DKE.RAW_EVENTS_DATA (KEY)");
+		jdbcTemplate.update("CREATE INDEX DKE.RAW_EVENTS_DATA_VALUE ON DKE.RAW_EVENTS_DATA (VALUE)");
 		
 		jdbcTemplate.update("ALTER TABLE DKE.RAW_EVENTS_DATA ADD FOREIGN KEY (EVENT_ID) REFERENCES DKE.RAW_EVENTS (ID) ON DELETE CASCADE");
 
@@ -206,7 +208,7 @@ public class CreateDB2 {
 
 		jdbcTemplate.update("DROP TABLE DKE.CASES IF EXISTS CASCADE");
 		jdbcTemplate.update("CREATE CACHED TABLE DKE.CASES ( ID INTEGER IDENTITY PRIMARY KEY, PROCESS_ID VARCHAR(20) NOT NULL, "
-				+ "NAME VARCHAR(100), EVENT_ID INTEGER, IDENTIFIER VARCHAR(2000), FOOTPRINT VARCHAR(2000), START_TS TIMESTAMP, "
+				+ "NAME VARCHAR(100), EVENT_ID INTEGER, IDENTIFIER VARCHAR(2000), FOOTPRINT VARCHAR(4000), START_TS TIMESTAMP, "
 				+ "END_TS TIMESTAMP, DURATION BIGINT DEFAULT 0)");
 
 		jdbcTemplate.update("CREATE INDEX DKE.CASES_PROCESS ON DKE.CASES (PROCESS_ID)");
@@ -246,7 +248,7 @@ public class CreateDB2 {
 		logger.debug("db_30_data_MODEL");
 
 		jdbcTemplate.update("DROP TABLE DKE.MODEL IF EXISTS CASCADE");
-		jdbcTemplate.update("CREATE CACHED TABLE DKE.MODEL ( PROCESS_ID VARCHAR(20) NOT NULL, FOOTPRINT VARCHAR(2000),"
+		jdbcTemplate.update("CREATE CACHED TABLE DKE.MODEL ( PROCESS_ID VARCHAR(20) NOT NULL, FOOTPRINT VARCHAR(4000),"
 				+ "NAME VARCHAR(100), NO_INSTANCES INTEGER, MIN_DURATION BIGINT, MAX_DURATION BIGINT, AVG_DURATION BIGINT, PROCESS_NET CLOB, "
 				+ "PRIMARY KEY (PROCESS_ID, FOOTPRINT))");
 

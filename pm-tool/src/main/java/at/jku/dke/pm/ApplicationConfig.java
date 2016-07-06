@@ -1,9 +1,13 @@
 package at.jku.dke.pm;
 
+import java.io.File;
+import java.nio.file.Files;
+
 import javax.sql.DataSource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
@@ -18,7 +22,8 @@ import at.jku.dke.pm.services.repositories.JdbcCaseRepository;
 import at.jku.dke.pm.services.repositories.JdbcProcessRepository;
 
 @Configuration
-@EnableAutoConfiguration()//exclude = { ThymeleafAutoConfiguration.class })
+@EnableAutoConfiguration()
+// exclude = { ThymeleafAutoConfiguration.class })
 public class ApplicationConfig {
 
 	protected static final Logger logger = LoggerFactory.getLogger(ApplicationConfig.class);
@@ -37,10 +42,26 @@ public class ApplicationConfig {
 	// return tomcat;
 	// }
 
+	@Value("${DB:null}")
+	private String dbPath;
+
 	@Bean
 	public DataSource dataSource() {
-		String dbUrl = String.format("jdbc:hsqldb:file:%s;hsqldb.script_format=3",
-				Filelocations.HSQL_DB.getAbsolutePath());
+		logger.info("DB: {}", dbPath);
+
+		File hsqlDB = null;
+		if (dbPath != null) {
+			hsqlDB = new File(dbPath);
+		}
+
+		if (hsqlDB == null || !hsqlDB.isDirectory()) {
+			hsqlDB = Filelocations.HSQL_DB;
+		} else {
+			hsqlDB = new File(dbPath, "pdm.hsql");
+		}
+
+		String dbUrl = String.format("jdbc:hsqldb:file:%s;hsqldb.script_format=3", hsqlDB.getAbsolutePath());
+		logger.info("DBURL: {}", dbUrl);
 
 		return DataSourceBuilder.create().driverClassName("org.hsqldb.jdbcDriver").url(dbUrl).username("SA")
 				.password("").build();

@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.sql.DataSource;
 
@@ -191,10 +192,14 @@ public class Application {
 
 		// cases laden
 		List<Case> cases = collector.identifyCases();
-		logger.debug("{} cases", cases.size());
+		int total = cases.size();
+		logger.info("{} cases", cases.size());
 
+		AtomicInteger act = new AtomicInteger(0);
 		cases.forEach(c -> {
+			logger.info("collect {}/{}", act.incrementAndGet(), total);
 			collector.collectCaseEvents(c);
+//			logger.info("ssave: {}", c);
 			caseRepository.save(c);
 		});
 

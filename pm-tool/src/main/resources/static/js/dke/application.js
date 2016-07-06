@@ -16,13 +16,17 @@ ProcessChart = function(callback) {
 	console.log("SVG-size", svg.style('width'), svg.style('height'), width,
 			height);
 
-	var x = d3.scale.ordinal().rangeRoundBands([ 0, width ], .1);
+	var x = d3.scale.ordinal().rangeBands([ 0, width ], .1);
 
-	var y = d3.scale.sqrt().range([ height, 0 ]);
+	var y = d3.scale.pow().exponent(.3).range([ height, 0 ]);
 
 	var xAxis = d3.svg.axis().scale(x).orient("bottom");
 
-	var yAxis = d3.svg.axis().scale(y).orient("left").ticks(3);
+	var yAxis = d3.svg.axis().scale(y).orient("left").ticks(3).tickFormat(
+			function(d) {
+				var prefix = d3.formatPrefix(d);
+				return prefix.scale(d) + prefix.symbol;
+			});
 
 	var tip = d3.tip().attr('class', 'd3-tip').offset([ -10, 0 ]).html(
 			function(d) {
@@ -30,42 +34,51 @@ ProcessChart = function(callback) {
 						+ d.footprint + "</span>";
 			})
 
-	svg = svg.append("g").attr("transform",
+	svg = svg.attr("cursor", "move").append("g").attr("transform",
 			"translate(" + margin.left + "," + margin.top + ")");
 
 	svg.call(tip);
 	svg.append("g").attr("class", "x axis").attr("transform",
 			"translate(0," + height + ")").call(xAxis);
-	/*
-	 * .call(xAxis) .selectAll("text") .attr("y", 0) .attr("x", 9) .attr("dy",
-	 * ".35em") .attr("transform", "rotate(90)") .style("text-anchor", "start");
-	 */
-	svg.append("g").attr("class", "y axis").call(yAxis);
-	/*
-	 * .append("text") .attr("transform", "rotate(-90)") .attr("y", 6)
-	 * .attr("dy", ".71em") .style("text-anchor", "end") .text("Frequency");
-	 */
 
+	svg.append("g").attr("class", "y axis").call(yAxis);
+
+	// clipping
+	svg.append("defs").append("clipPath").attr("id", "mask").append("rect")
+			.attr("width", width).attr("height", height);
+
+	var clip = svg.append("g").attr("clip-path", "url(#mask)").attr("cursor", "pointer").append("g");
+	
 	this.setData = function(data) {
+		x.rangeBands([ 0, Math.max(width, 10 * data.length) ], .1);
 		x.domain(data.map(function(d) {
 			return d.footprint;
 		}));
-		y.domain([ 0, d3.max(data, function(d) {
+		var maxNoCases = d3.max(data, function(d) {
 			return d.noCases;
-		}) ]);
+		});
+		y.exponent(maxNoCases > 1000 ? .3 : .5).domain([ 0, maxNoCases ]);
 
 		svg.selectAll("g.y.axis").call(yAxis);
 
-		var selection = svg.selectAll(".bar").data(data);
+		console.time("updateVariant");
+		
+		var selection = clip.selectAll(".bar").data(data);
 		selection.exit().remove();
-		selection.enter().append("rect").attr("class", "bar").attr("x",
-				function(d) {
+		selection
+				.enter()
+				.append("rect")
+				.attr("class", "bar")
+				.attr("x", function(d) {
 					return x(d.footprint);
-				}).attr("width", x.rangeBand()).attr("y", function(d) {
-			return y(d.noCases);
-		}).attr("height", function(d) {
-			return height - y(d.noCases);
-		})
+				})
+				.attr("width", x.rangeBand())
+				.attr("y", function(d) {
+					return y(d.noCases);
+				})
+				.attr("height", function(d) {
+					return height - y(d.noCases);
+				})
 				.on(
 						"click",
 						function(data) {
@@ -89,32 +102,54 @@ ProcessChart = function(callback) {
 								application.selectModels(data.footprint);
 							}
 						})
-				.on('mouseover', function() {
-					tip.show.apply(this, arguments);
-					var fpClass = dke.util.fpCss(d3.select(this).data()[0].footprint);
-					//console.log( d3.select(this).data()[0], fpClass);
-					d3.selectAll('#svg-canvas .'+fpClass).classed('dke-selected',true);
-				}).on('mouseout', function() {
-					tip.hide.apply(this, arguments);
-					var fpClass = dke.util.fpCss(d3.select(this).data()[0].footprint);
-					d3.selectAll('#svg-canvas .'+fpClass).classed('dke-selected',false);
-				});
+				.on(
+						'mouseover',
+						function() {
+							tip.show.apply(this, arguments);
+							var fpClass = dke.util
+									.fpCss(d3.select(this).data()[0].footprint);
+							// console.log( d3.select(this).data()[0], fpClass);
+							d3.selectAll('#svg-canvas .' + fpClass).classed(
+									'dke-selected', true);
+						})
+				.on(
+						'mouseout',
+						function() {
+							tip.hide.apply(this, arguments);
+							var fpClass = dke.util
+									.fpCss(d3.select(this).data()[0].footprint);
+							d3.selectAll('#svg-canvas .' + fpClass).classed(
+									'dke-selected', false);
+						});
 
-		selection.transition().attr("x",
-				function(d) {
-					return x(d.footprint);
-				}).attr("width", x.rangeBand()).attr("y", function(d) {
+		selection.transition().attr("x", function(d) {
+			return x(d.footprint);
+		}).attr("width", x.rangeBand()).attr("y", function(d) {
 			return y(d.noCases);
 		}).attr("height", function(d) {
 			return height - y(d.noCases);
 		});
 
-		svg.selectAll(".bar").each(function() {
+		clip.selectAll(".bar").each(function() {
 			var elt = d3.select(this);
 			elt.classed(dke.util.fpCss(elt.data()[0].footprint), true);
-		})
-	}
+		});
 
+		console.timeEnd("updateVariant");
+		
+		// Set up zoom support
+		var zoom = d3.behavior.zoom();
+		zoom.on("zoom", function() {
+			var x = Math.max( d3.event.translate[0], (width - (data.length * 10)));
+			x = Math.min( x, 0);
+			
+			console.log("ZOOM", clip, d3.event.translate, zoom);
+			zoom.translate([ x, d3.event.translate[1] ])
+			clip.attr("transform", "translate(" + x + ")");
+		});
+		d3.select("#svg-processes").call(zoom);
+	}
+	
 	this.setData([]);
 }
 
@@ -145,7 +180,11 @@ EventChart = function(callback) {
 
 	var xAxis = d3.svg.axis().scale(x).orient("bottom");
 
-	var yAxis = d3.svg.axis().scale(y).orient("left").ticks(1);
+	var yAxis = d3.svg.axis().scale(y).orient("left").ticks(1).tickFormat(
+			function(d) {
+				var prefix = d3.formatPrefix(d);
+				return prefix.scale(d) + prefix.symbol;
+			});
 
 	var tip = d3.tip().attr('class', 'd3-tip').offset([ -10, 0 ]).html(
 			function(d) {
@@ -264,9 +303,17 @@ GraphPanel = function(callback, graph) {
 			return;
 
 		var c = this.graph === null;
-		this.graph = dke.ModelUtils.createGraph(model, this.nodeStyle, this.edgeStyle);
+		this.graph = dke.ModelUtils.createGraph(model, this.nodeStyle,
+				this.edgeStyle);
+
+		console.time("render");
 
 		render(d3.select("#svg-canvas g"), this.graph);
+
+		console.timeEnd("render");
+
+		console.time("stroke");
+
 		d3.selectAll('#svg-canvas path.path').each(
 				function(p) {
 					var strokeWidth = parseFloat(d3.select(this).style(
@@ -276,7 +323,9 @@ GraphPanel = function(callback, graph) {
 					if (strokeWidth > 5)
 						d3.select(this.parentNode).select('marker').attr(
 								"markerWidth", 4).attr("markerHeight", 3);
-				})
+				});
+
+		console.timeEnd("stroke");
 
 		if (c)
 			this.center();
@@ -284,7 +333,7 @@ GraphPanel = function(callback, graph) {
 
 	this.setEdgeLabelRenderer = function(val) {
 		if (val === null) {
-			this.edgeStyle =  new dke.format.DagreEdgeAll();
+			this.edgeStyle = new dke.format.DagreEdgeAll();
 		} else if (val) {
 			this.edgeStyle = new dke.format.DagreEdgeTime();
 		} else {
@@ -296,7 +345,8 @@ GraphPanel = function(callback, graph) {
 	this.setNodeLabelRenderer = function(val) {
 
 		if (val) {
-			this.nodeStyle = new dke.format.DagreNodeLong(this.application.getEventTypes());
+			this.nodeStyle = new dke.format.DagreNodeLong(this.application
+					.getEventTypes());
 		} else {
 			this.nodeStyle = new dke.format.DagreNode();
 		}
@@ -319,21 +369,9 @@ GraphPanel = function(callback, graph) {
 				"transform",
 				"translate(" + xCenterOffset + ", " + yCenterOffset + ")scale("
 						+ this.zoom.scale() + ")");
-		// svg.attr("height", this.graph.graph().height + 40);
 	}
 
 	this.zoom = function(zoom) {
 		this.zoom = zoom;
 	}
-}
-
-function makeSafeForCSS(name) {
-	return name.replace(/[^a-z0-9]/g, function(s) {
-		var c = s.charCodeAt(0);
-		if (c == 32)
-			return '-';
-		if (c >= 65 && c <= 90)
-			return '_' + s.toLowerCase();
-		return '__' + ('000' + c.toString(16)).slice(-4);
-	});
 }

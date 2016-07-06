@@ -16,6 +16,6 @@ logger("org.springframework.jdbc.core", INFO)
 logger("org.springframework.boot", TRACE)
 logger("org.hsqldb", INFO)
 
-logger("at.jku.dke", DEBUG)
-logger("com.fasterxml", TRACE)
+logger("at.jku.dke", INFO)
+logger("com.fasterxml", ERROR)
 
